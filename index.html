@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Livro de Gastos</title>
+<style>
+  :root{
+    --paper: #F6F1E4;
+    --paper-line: #E1D8C2;
+    --ink: #24313E;
+    --ink-soft: #6B7A87;
+    --rust: #9A3E33;
+    --rust-soft: #C97C6F;
+    --card: #FFFDF8;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-user-select:none; user-select:none;
+    overscroll-behavior:none;
+  }
+  input{ -webkit-user-select:text; user-select:text; }
+  .app{
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display:flex;
+    flex-direction:column;
+    padding-bottom: 96px;
+  }
+  header{ padding: 26px 22px 14px; text-align:center; position:relative; }
+  .gear-btn{
+    position:absolute; top: 20px; right: 18px;
+    background:none; border:none; font-size: 20px; color: var(--ink-soft);
+    width: 36px; height: 36px; border-radius: 50%; cursor:pointer;
+  }
+  .gear-btn:active{ background: var(--paper-line); }
+  .calendar-btn{
+    position:absolute; top: 20px; left: 18px;
+    background:none; border:none; font-size: 20px; color: var(--ink-soft);
+    width: 36px; height: 36px; border-radius: 50%; cursor:pointer;
+  }
+  .calendar-btn:active{ background: var(--paper-line); }
+  .brand{
+    font-family: Georgia, "Source Serif 4", serif;
+    font-size: 25px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .brand-sub{ font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
+
+  .profile-block{ padding: 10px 22px 2px; text-align:center; }
+  .profile-display{
+    display:inline-flex; align-items:center; gap: 8px;
+    font-size: 12.5px; color: var(--ink-soft);
+    background: var(--card); border: 1px solid var(--paper-line);
+    border-radius: 8px; padding: 6px 14px; cursor:pointer;
+  }
+  .profile-display b{ color: var(--ink); font-weight:600; }
+  .profile-form{ display:flex; gap: 8px; justify-content:center; }
+  .profile-form input{
+    max-width: 220px; padding: 9px 12px; border: 1px solid var(--paper-line);
+    border-radius: 8px; font-size: 14px; background: var(--card); color: var(--ink);
+  }
+  .profile-form button{
+    background: var(--ink); color: var(--paper); border:none; border-radius: 8px;
+    padding: 9px 16px; font-size: 13.5px; font-weight: 600; cursor:pointer;
+  }
+
+  .month-nav{
+    display:flex; align-items:center; justify-content:center;
+    gap: 18px; padding: 4px 22px 6px;
+  }
+  .month-nav button{
+    background:none; border:none; font-size: 20px;
+    color: var(--ink-soft); width: 34px; height: 34px;
+    border-radius: 50%; cursor:pointer;
+  }
+  .month-nav button:active{ background: var(--paper-line); }
+  .month-label{
+    font-family: Georgia, "Source Serif 4", serif;
+    font-size: 18px; min-width: 170px; text-align:center;
+    text-transform: capitalize;
+  }
+
+  .tab-bar{
+    display:flex; gap: 6px; padding: 4px 22px 10px;
+  }
+  .tab-btn{
+    flex:1; padding: 9px 0; border-radius: 8px; border: 1px solid var(--paper-line);
+    background: transparent; color: var(--ink-soft); font-size: 13.5px; font-weight: 600; cursor:pointer;
+  }
+  .tab-btn.active{ background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .tab-btn:active{ opacity:0.85; }
+
+  .balance-block{ text-align:center; padding: 16px 22px 20px; }
+  .balance-caption{ font-size: 12.5px; color: var(--ink-soft); }
+  .balance-value{
+    font-size: 40px; font-weight: 600; font-variant-numeric: tabular-nums;
+    color: var(--ink); letter-spacing: -0.5px; margin-top: 2px;
+  }
+  .balance-value.negativo{ color: var(--rust); }
+  .balance-edit{
+    display:inline-block; margin-top: 8px; font-size: 12.5px; color: var(--rust);
+    background:none; border:none; text-decoration: underline; text-underline-offset: 3px; cursor:pointer;
+  }
+  .sub-total{
+    margin-top: 14px; font-size: 13.5px; color: var(--ink-soft);
+    padding-top: 12px; border-top: 1px solid var(--paper-line);
+  }
+  .sub-total b{ font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
+
+  .no-balance{ text-align:center; padding: 18px 22px 22px; }
+  .no-balance p{ font-size: 13.5px; color: var(--ink-soft); margin-bottom: 10px; }
+  .no-balance button{
+    background: var(--ink); color: var(--paper); border:none; border-radius: 8px;
+    padding: 10px 20px; font-size: 13.5px; font-weight: 600; cursor:pointer;
+  }
+
+  .list-wrap{ flex:1; padding: 8px 16px 0; }
+  .list-card{
+    background: var(--card); border: 1px solid var(--paper-line);
+    border-radius: 10px;
+  }
+  .row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 13px 16px; border-bottom: 1px solid var(--paper-line); gap: 10px;
+  }
+  .row:first-child{ border-radius: 10px 10px 0 0; }
+  .row:last-child{ border-bottom:none; border-radius: 0 0 10px 10px; }
+  .row:only-child{ border-radius: 10px; }
+  .row:active{ background: var(--paper); }
+  .row-main{ display:flex; align-items:baseline; gap: 10px; flex:1; min-width:0; }
+  .row-date{ font-size: 12.5px; color: var(--ink-soft); white-space:nowrap; flex-shrink:0; }
+  .row-desc{ font-size: 15px; color: var(--ink); word-break: break-word; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .row-value{ font-size: 15.5px; font-variant-numeric: tabular-nums; color: var(--ink); white-space:nowrap; }
+  .empty-state{
+    text-align:center; padding: 40px 30px; color: var(--ink-soft); font-size: 14px; line-height:1.6;
+  }
+  .empty-state strong{
+    display:block; font-family: Georgia, serif; font-size: 17px; color: var(--ink); margin-bottom: 6px;
+  }
+
+  .fab-bar{
+    position:fixed; bottom:0; left:0; right:0; display:flex; justify-content:center;
+    padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--paper) 60%, transparent);
+  }
+  .fab{
+    background: var(--ink); color: var(--paper); border:none; border-radius: 8px;
+    padding: 14px 26px; font-size: 15px; font-weight: 600; display:flex; align-items:center;
+    gap:8px; cursor:pointer; box-shadow: 0 6px 16px rgba(36,49,62,0.25);
+    max-width: 448px; width:100%; justify-content:center;
+  }
+  .fab:active{ background: #1a242e; }
+
+  .overlay{
+    position:fixed; inset:0; background: rgba(36,49,62,0.35);
+    display:none; align-items:flex-end; justify-content:center; z-index: 50;
+  }
+  .overlay.show{ display:flex; }
+  .sheet{
+    background: var(--card); width:100%; max-width: 480px;
+    border-radius: 18px 18px 0 0; padding: 22px 22px calc(22px + env(safe-area-inset-bottom));
+  }
+  .sheet h2{ font-family: Georgia, serif; font-size: 19px; margin-bottom: 16px; }
+  .field{ margin-bottom: 14px; }
+  .field label{ display:block; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 5px; }
+  .field input{
+    width:100%; padding: 12px 14px; border: 1px solid var(--paper-line);
+    border-radius: 8px; font-size: 16px; background: var(--paper); color: var(--ink);
+  }
+  .field input:focus{ outline: none; border-color: var(--rust-soft); }
+  .sheet-actions{ display:flex; gap: 10px; margin-top: 18px; }
+  .sheet-actions button{
+    flex:1; padding: 13px; border-radius: 8px; font-size: 15px; font-weight: 600; border:none; cursor:pointer;
+  }
+  .btn-cancel{ background: var(--paper); color: var(--ink-soft); border: 1px solid var(--paper-line) !important; }
+  .btn-save{ background: var(--rust); color: #fff; }
+  .btn-save:active{ background:#7f332a; }
+  .btn-cancel:active{ background: var(--paper-line); }
+
+  .confirm-box{ text-align:center; }
+  .confirm-box p{ font-size: 14.5px; color: var(--ink); margin-bottom: 18px; line-height:1.5; }
+
+  /* menu de ações (editar/excluir) — bottom sheet, não sofre corte visual */
+  .action-list{ display:flex; flex-direction:column; gap: 8px; }
+  .action-btn{
+    width:100%; padding: 14px; border-radius: 8px; font-size: 15px; font-weight: 600;
+    border: 1px solid var(--paper-line); background: var(--paper); color: var(--ink); cursor:pointer;
+  }
+  .action-btn:active{ background: var(--paper-line); }
+  .action-btn.danger{ color: var(--rust); border-color: var(--rust-soft); }
+  .action-btn.cancel{ border:none; background:none; color: var(--ink-soft); margin-top: 4px; }
+
+  .toast{
+    position:fixed; bottom: 96px; left:50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--paper); padding: 12px 20px; border-radius: 8px;
+    font-size: 14px; opacity:0; pointer-events:none; transition: opacity .25s, transform .25s;
+    z-index: 60; white-space:nowrap;
+  }
+  .toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
+
+  .cal-year-nav{
+    display:flex; align-items:center; justify-content:center;
+    gap: 18px; margin-bottom: 16px;
+  }
+  .cal-year-nav button{
+    background:none; border:none; font-size: 18px; color: var(--ink-soft);
+    width: 32px; height: 32px; border-radius: 8px; cursor:pointer;
+  }
+  .cal-year-nav button:active{ background: var(--paper-line); }
+  .cal-year-label{
+    font-family: Georgia, "Source Serif 4", serif; font-size: 18px; min-width: 70px; text-align:center;
+  }
+  .cal-grid{
+    display:grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+  .cal-month-btn{
+    padding: 12px 0; border-radius: 8px; border: 1px solid var(--paper-line);
+    background: var(--paper); color: var(--ink); font-size: 14px; font-weight: 600; cursor:pointer;
+    text-transform: capitalize;
+  }
+  .cal-month-btn:active{ background: var(--paper-line); }
+  .cal-month-btn.selected{ background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <button class="calendar-btn" id="calendarBtn" aria-label="Escolher mês e ano">📅</button>
+    <button class="gear-btn" id="gearBtn" aria-label="Backup">⚙</button>
+    <div class="brand">Livro de Gastos</div>
+    <div class="brand-sub">Seus gastos, mês a mês</div>
+  </header>
+
+  <div class="profile-block" id="profileArea"></div>
+
+  <div class="month-nav">
+    <button id="prevMonth" aria-label="Mês anterior">‹</button>
+    <div class="month-label" id="monthLabel">Setembro 2026</div>
+    <button id="nextMonth" aria-label="Próximo mês">›</button>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tabGeral">Geral</button>
+    <button class="tab-btn" id="tabCartao">Cartão</button>
+  </div>
+
+  <div id="balanceArea"></div>
+
+  <div class="list-wrap">
+    <div class="list-card" id="listCard"></div>
+  </div>
+</div>
+
+<div class="fab-bar">
+  <button class="fab" id="openAdd">+ Novo gasto</button>
+</div>
+
+<!-- overlay: adicionar/editar gasto -->
+<div class="overlay" id="formOverlay">
+  <div class="sheet">
+    <h2 id="formTitle">Novo gasto</h2>
+    <div class="field">
+      <label for="inputDesc">Local da despesa</label>
+      <input type="text" id="inputDesc" placeholder="Ex: Supermercado" maxlength="60">
+    </div>
+    <div class="field">
+      <label for="inputValor">Valor (R$)</label>
+      <input type="number" id="inputValor" placeholder="0,00" step="0.01" min="0" inputmode="decimal">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" id="cancelForm">Cancelar</button>
+      <button class="btn-save" id="saveForm">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- overlay: definir/editar saldo inicial do mês -->
+<div class="overlay" id="balanceOverlay">
+  <div class="sheet">
+    <h2>Saldo inicial do mês</h2>
+    <div class="field">
+      <label for="inputSaldo">Valor (R$)</label>
+      <input type="number" id="inputSaldo" placeholder="0,00" step="0.01" min="0" inputmode="decimal">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" id="cancelBalance">Cancelar</button>
+      <button class="btn-save" id="saveBalance">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- overlay: ações do gasto (editar/excluir) -->
+<div class="overlay" id="actionOverlay">
+  <div class="sheet">
+    <h2 id="actionTitle">Gasto</h2>
+    <div class="action-list">
+      <button class="action-btn" id="actionEdit">Editar</button>
+      <button class="action-btn danger" id="actionDelete">Excluir</button>
+      <button class="action-btn cancel" id="actionCancel">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- overlay: escolher mês/ano -->
+<div class="overlay" id="calendarOverlay">
+  <div class="sheet">
+    <h2>Ir para</h2>
+    <div class="cal-year-nav">
+      <button id="calPrevYear">‹</button>
+      <div class="cal-year-label" id="calYearLabel">2026</div>
+      <button id="calNextYear">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+</div>
+
+<!-- overlay: backup -->
+<div class="overlay" id="backupOverlay">
+  <div class="sheet">
+    <h2>Backup</h2>
+    <div class="action-list">
+      <button class="action-btn" id="btnExportar">Exportar backup (.json)</button>
+      <button class="action-btn" id="btnImportar">Importar backup (.json)</button>
+      <button class="action-btn cancel" id="btnFecharBackup">Fechar</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="fileImportar" accept="application/json,.json" style="display:none">
+
+<!-- overlay: confirmar exclusão -->
+<div class="overlay" id="confirmOverlay">
+  <div class="sheet confirm-box">
+    <h2>Excluir gasto?</h2>
+    <p>Essa ação não pode ser desfeita.</p>
+    <div class="sheet-actions">
+      <button class="btn-cancel" id="cancelDelete">Cancelar</button>
+      <button class="btn-save" id="confirmDelete">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------- IndexedDB ----------
+let db;
+const DB_NAME = "livro-gastos-db";
+const STORE_GASTOS = "gastos";
+const STORE_SALDOS = "saldosMensais";
+const STORE_PERFIL = "perfil";
+
+const dbRequest = indexedDB.open(DB_NAME, 2);
+
+dbRequest.onupgradeneeded = (e) => {
+  const database = e.target.result;
+  if (!database.objectStoreNames.contains(STORE_GASTOS)) {
+    const store = database.createObjectStore(STORE_GASTOS, { keyPath: "id", autoIncrement: true });
+    store.createIndex("anoMes", ["ano", "mes"], { unique: false });
+  }
+  if (!database.objectStoreNames.contains(STORE_SALDOS)) {
+    database.createObjectStore(STORE_SALDOS, { keyPath: "chave" });
+  }
+  if (!database.objectStoreNames.contains(STORE_PERFIL)) {
+    database.createObjectStore(STORE_PERFIL, { keyPath: "chave" });
+  }
+};
+
+dbRequest.onsuccess = (e) => {
+  db = e.target.result;
+  renderProfile();
+  render();
+};
+
+dbRequest.onerror = (e) => {
+  console.error("Erro IndexedDB:", e.target.error);
+  document.getElementById("listCard").innerHTML =
+    `<div class="empty-state"><strong>Não foi possível abrir os dados</strong>
+    Isso costuma acontecer quando o arquivo é aberto direto (duplo clique) em vez de publicado
+    num site ou servidor local. Tente abrir via GitHub Pages, Firebase Hosting, ou um servidor local.</div>`;
+};
+
+function chaveSaldo(ano, mes) { return `${ano}-${mes}`; }
+
+function getAllGastos() {
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_GASTOS, "readonly");
+    const req = tx.objectStore(STORE_GASTOS).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => resolve([]);
+  });
+}
+
+function addGasto(item) {
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_GASTOS, "readwrite");
+    tx.objectStore(STORE_GASTOS).add(item);
+    tx.oncomplete = () => resolve();
+  });
+}
+
+function updateGasto(item) {
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_GASTOS, "readwrite");
+    tx.objectStore(STORE_GASTOS).put(item);
+    tx.oncomplete = () => resolve();
+  });
+}
+
+function deleteGasto(id) {
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_GASTOS, "readwrite");
+    tx.objectStore(STORE_GASTOS).delete(id);
+    tx.oncomplete = () => resolve();
+  });
+}
+
+function getSaldo(ano, mes) {
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_SALDOS, "readonly");
+    const req = tx.objectStore(STORE_SALDOS).get(chaveSaldo(ano, mes));
+    req.onsuccess = () => resolve(req.result ? req.result.valor : null);
+    req.onerror = () => resolve(null);
+  });
+}
+
+function setSaldo(ano, mes, valor) {
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_SALDOS, "readwrite");
+    tx.objectStore(STORE_SALDOS).put({ chave: chaveSaldo(ano, mes), valor });
+    tx.oncomplete = () => resolve();
+  });
+}
+
+function getPerfil() {
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_PERFIL, "readonly");
+    const req = tx.objectStore(STORE_PERFIL).get("perfil");
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => resolve(null);
+  });
+}
+
+function setPerfil(nome, id) {
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_PERFIL, "readwrite");
+    tx.objectStore(STORE_PERFIL).put({ chave: "perfil", nome, id });
+    tx.oncomplete = () => resolve();
+  });
+}
+
+function gerarIdPerfil() {
+  const d = new Date();
+  const aaaa = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let sufixo = "";
+  for (let i = 0; i < 4; i++) sufixo += chars[Math.floor(Math.random() * chars.length)];
+  return `${aaaa}${mm}${dd} ${sufixo}`;
+}
+
+// ---------- Estado ----------
+const hoje = new Date();
+let mesAtual = hoje.getMonth();
+let anoAtual = hoje.getFullYear();
+let editandoId = null;
+let excluindoId = null;
+let itemSelecionado = null;
+let abaAtual = "geral"; // "geral" ou "cartao"
+
+const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+function formatMoeda(v) {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function formatDataCurta(timestamp) {
+  const d = new Date(timestamp);
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
+function updateMonthLabel() {
+  document.getElementById("monthLabel").textContent = `${MESES[mesAtual]} ${anoAtual}`;
+}
+
+// ---------- Render ----------
+async function render() {
+  updateMonthLabel();
+
+  const todos = await getAllGastos();
+  const doMesTudo = todos.filter(g => g.mes === mesAtual && g.ano === anoAtual);
+
+  const doAba = doMesTudo
+    .filter(g => (g.tipo || "geral") === abaAtual)
+    .sort((a, b) => b.criadoEm - a.criadoEm);
+
+  const totalAba = doAba.reduce((soma, g) => soma + g.valor, 0);
+
+  if (abaAtual === "geral") {
+    const saldoInicial = await getSaldo(anoAtual, mesAtual);
+    renderBalanceAreaGeral(saldoInicial, totalAba);
+  } else {
+    renderBalanceAreaCartao(totalAba);
+  }
+
+  renderList(doAba);
+}
+
+function renderBalanceAreaGeral(saldoInicial, totalGasto) {
+  const area = document.getElementById("balanceArea");
+
+  if (saldoInicial === null) {
+    area.innerHTML = `
+      <div class="no-balance">
+        <p>Nenhum saldo inicial definido para este mês.</p>
+        <button id="btnDefinirSaldo">Definir saldo inicial</button>
+      </div>`;
+    document.getElementById("btnDefinirSaldo").addEventListener("click", () => openBalanceForm(null));
+    return;
+  }
+
+  const restante = saldoInicial - totalGasto;
+  const negativo = restante < 0;
+
+  area.innerHTML = `
+    <div class="balance-block">
+      <div class="balance-caption">saldo restante</div>
+      <div class="balance-value ${negativo ? "negativo" : ""}">${formatMoeda(restante)}</div>
+      <button class="balance-edit" id="btnEditarSaldo">editar saldo inicial (${formatMoeda(saldoInicial)})</button>
+      <div class="sub-total">total gasto no mês: <b>${formatMoeda(totalGasto)}</b></div>
+    </div>`;
+  document.getElementById("btnEditarSaldo").addEventListener("click", () => openBalanceForm(saldoInicial));
+}
+
+function renderBalanceAreaCartao(totalCartao) {
+  const area = document.getElementById("balanceArea");
+  area.innerHTML = `
+    <div class="balance-block">
+      <div class="balance-caption">total no cartão este mês</div>
+      <div class="balance-value">${formatMoeda(totalCartao)}</div>
+    </div>`;
+}
+
+function renderList(doMes) {
+  const card = document.getElementById("listCard");
+  card.innerHTML = "";
+
+  if (doMes.length === 0) {
+    const rotulo = abaAtual === "cartao" ? "gastos no cartão" : "gastos";
+    card.innerHTML = `
+      <div class="empty-state">
+        <strong>Nada registrado ainda</strong>
+        Toque em "Novo gasto" para começar a anotar os ${rotulo} de ${MESES[mesAtual].toLowerCase()}.
+      </div>`;
+    return;
+  }
+
+  doMes.forEach(g => {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `
+      <div class="row-main">
+        <div class="row-date">${formatDataCurta(g.criadoEm)}</div>
+        <div class="row-desc">${escapeHtml(g.descricao)}</div>
+      </div>
+      <div class="row-value">${formatMoeda(g.valor)}</div>
+    `;
+    row.addEventListener("click", () => openActionSheet(g));
+    card.appendChild(row);
+  });
+}
+
+function escapeHtml(str) {
+  const d = document.createElement("div");
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// ---------- Ações do gasto (editar/excluir) — bottom sheet ----------
+const actionOverlay = document.getElementById("actionOverlay");
+const actionTitle = document.getElementById("actionTitle");
+
+function openActionSheet(item) {
+  itemSelecionado = item;
+  actionTitle.textContent = item.descricao;
+  actionOverlay.classList.add("show");
+}
+
+document.getElementById("actionCancel").addEventListener("click", () => {
+  actionOverlay.classList.remove("show");
+});
+
+document.getElementById("actionEdit").addEventListener("click", () => {
+  actionOverlay.classList.remove("show");
+  openEditForm(itemSelecionado);
+});
+
+document.getElementById("actionDelete").addEventListener("click", () => {
+  actionOverlay.classList.remove("show");
+  openDeleteConfirm(itemSelecionado.id);
+});
+
+// ---------- Calendário (escolher mês/ano) ----------
+const calendarOverlay = document.getElementById("calendarOverlay");
+const calYearLabel = document.getElementById("calYearLabel");
+const calGrid = document.getElementById("calGrid");
+let anoCalendario = anoAtual;
+
+const MESES_ABREV = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
+function renderCalendarGrid() {
+  calYearLabel.textContent = anoCalendario;
+  calGrid.innerHTML = "";
+  MESES_ABREV.forEach((nome, i) => {
+    const btn = document.createElement("button");
+    btn.className = "cal-month-btn";
+    if (anoCalendario === anoAtual && i === mesAtual) btn.classList.add("selected");
+    btn.textContent = nome;
+    btn.addEventListener("click", () => {
+      mesAtual = i;
+      anoAtual = anoCalendario;
+      calendarOverlay.classList.remove("show");
+      render();
+    });
+    calGrid.appendChild(btn);
+  });
+}
+
+document.getElementById("calendarBtn").addEventListener("click", () => {
+  anoCalendario = anoAtual;
+  renderCalendarGrid();
+  calendarOverlay.classList.add("show");
+});
+document.getElementById("calPrevYear").addEventListener("click", () => {
+  anoCalendario--;
+  renderCalendarGrid();
+});
+document.getElementById("calNextYear").addEventListener("click", () => {
+  anoCalendario++;
+  renderCalendarGrid();
+});
+calendarOverlay.addEventListener("click", (e) => {
+  if (e.target === calendarOverlay) calendarOverlay.classList.remove("show");
+});
+
+// ---------- Perfil (nome + ID) ----------
+async function renderProfile() {
+  const area = document.getElementById("profileArea");
+  const perfil = await getPerfil();
+
+  if (!perfil) {
+    area.innerHTML = `
+      <div class="profile-form">
+        <input type="text" id="inputNomePerfil" placeholder="Seu nome" maxlength="40">
+        <button id="btnSalvarPerfil">Salvar</button>
+      </div>`;
+    document.getElementById("btnSalvarPerfil").addEventListener("click", async () => {
+      const nome = document.getElementById("inputNomePerfil").value.trim();
+      if (!nome) { showToast("Digite um nome"); return; }
+      const id = gerarIdPerfil();
+      await setPerfil(nome, id);
+      renderProfile();
+    });
+    return;
+  }
+
+  area.innerHTML = `
+    <div class="profile-display" id="profileDisplay">
+      <b>${escapeHtml(perfil.nome)}</b> · ID ${escapeHtml(perfil.id)}
+    </div>`;
+  document.getElementById("profileDisplay").addEventListener("click", () => {
+    area.innerHTML = `
+      <div class="profile-form">
+        <input type="text" id="inputNomePerfil" value="${escapeHtml(perfil.nome)}" maxlength="40">
+        <button id="btnSalvarPerfil">Salvar</button>
+      </div>`;
+    document.getElementById("btnSalvarPerfil").addEventListener("click", async () => {
+      const nome = document.getElementById("inputNomePerfil").value.trim();
+      if (!nome) { showToast("Digite um nome"); return; }
+      await setPerfil(nome, perfil.id);
+      renderProfile();
+    });
+  });
+}
+
+// ---------- Backup ----------
+const backupOverlay = document.getElementById("backupOverlay");
+
+document.getElementById("gearBtn").addEventListener("click", () => {
+  backupOverlay.classList.add("show");
+});
+document.getElementById("btnFecharBackup").addEventListener("click", () => {
+  backupOverlay.classList.remove("show");
+});
+
+document.getElementById("btnExportar").addEventListener("click", async () => {
+  const gastos = await getAllGastos();
+  const tx = db.transaction(STORE_SALDOS, "readonly");
+  const saldos = await new Promise((resolve) => {
+    const req = tx.objectStore(STORE_SALDOS).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => resolve([]);
+  });
+  const perfil = await getPerfil();
+
+  const dados = { gastos, saldos, perfil, versao: 1 };
+  const blob = new Blob([JSON.stringify(dados, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const hoje = new Date();
+  const dd = String(hoje.getDate()).padStart(2, "0");
+  const mm = String(hoje.getMonth() + 1).padStart(2, "0");
+  const aaaa = hoje.getFullYear();
+  const nomeArquivo = `${dd}-${mm}-${aaaa}-livro-de-gastos-backup.json`;
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nomeArquivo;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast("Backup exportado");
+  backupOverlay.classList.remove("show");
+});
+
+document.getElementById("btnImportar").addEventListener("click", () => {
+  document.getElementById("fileImportar").click();
+});
+
+document.getElementById("fileImportar").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  try {
+    const texto = await file.text();
+    const dados = JSON.parse(texto);
+
+    const txGastos = db.transaction(STORE_GASTOS, "readwrite");
+    txGastos.objectStore(STORE_GASTOS).clear();
+    await new Promise(r => txGastos.oncomplete = r);
+
+    const txG2 = db.transaction(STORE_GASTOS, "readwrite");
+    (dados.gastos || []).forEach(g => {
+      const copia = { ...g };
+      delete copia.id;
+      txG2.objectStore(STORE_GASTOS).add(copia);
+    });
+    await new Promise(r => txG2.oncomplete = r);
+
+    const txSaldos = db.transaction(STORE_SALDOS, "readwrite");
+    txSaldos.objectStore(STORE_SALDOS).clear();
+    await new Promise(r => txSaldos.oncomplete = r);
+
+    const txS2 = db.transaction(STORE_SALDOS, "readwrite");
+    (dados.saldos || []).forEach(s => txS2.objectStore(STORE_SALDOS).put(s));
+    await new Promise(r => txS2.oncomplete = r);
+
+    if (dados.perfil) {
+      await setPerfil(dados.perfil.nome, dados.perfil.id);
+    }
+
+    showToast("Backup importado");
+    backupOverlay.classList.remove("show");
+    renderProfile();
+    render();
+  } catch (err) {
+    console.error(err);
+    showToast("Arquivo inválido");
+  }
+
+  e.target.value = "";
+});
+
+// ---------- Abas Geral / Cartão ----------
+document.getElementById("tabGeral").addEventListener("click", () => {
+  if (abaAtual === "geral") return;
+  abaAtual = "geral";
+  document.getElementById("tabGeral").classList.add("active");
+  document.getElementById("tabCartao").classList.remove("active");
+  render();
+});
+document.getElementById("tabCartao").addEventListener("click", () => {
+  if (abaAtual === "cartao") return;
+  abaAtual = "cartao";
+  document.getElementById("tabCartao").classList.add("active");
+  document.getElementById("tabGeral").classList.remove("active");
+  render();
+});
+
+// ---------- Navegação de mês ----------
+document.getElementById("prevMonth").addEventListener("click", () => {
+  mesAtual--;
+  if (mesAtual < 0) { mesAtual = 11; anoAtual--; }
+  render();
+});
+document.getElementById("nextMonth").addEventListener("click", () => {
+  mesAtual++;
+  if (mesAtual > 11) { mesAtual = 0; anoAtual++; }
+  render();
+});
+
+// ---------- Formulário: gasto ----------
+const formOverlay = document.getElementById("formOverlay");
+const inputDesc = document.getElementById("inputDesc");
+const inputValor = document.getElementById("inputValor");
+const formTitle = document.getElementById("formTitle");
+
+document.getElementById("openAdd").addEventListener("click", () => {
+  editandoId = null;
+  formTitle.textContent = abaAtual === "cartao" ? "Novo gasto no cartão" : "Novo gasto";
+  inputDesc.value = "";
+  inputValor.value = "";
+  formOverlay.classList.add("show");
+  setTimeout(() => inputDesc.focus(), 100);
+});
+
+function openEditForm(item) {
+  editandoId = item.id;
+  formTitle.textContent = "Editar gasto";
+  inputDesc.value = item.descricao;
+  inputValor.value = item.valor;
+  formOverlay.classList.add("show");
+  setTimeout(() => inputDesc.focus(), 100);
+}
+
+document.getElementById("cancelForm").addEventListener("click", () => {
+  formOverlay.classList.remove("show");
+});
+
+document.getElementById("saveForm").addEventListener("click", async () => {
+  const descricao = inputDesc.value.trim();
+  const valor = parseFloat(inputValor.value);
+
+  if (!descricao) { showToast("Digite o local da despesa"); return; }
+  if (isNaN(valor) || valor <= 0) { showToast("Digite um valor válido"); return; }
+
+  if (editandoId) {
+    const todos = await getAllGastos();
+    const original = todos.find(g => g.id === editandoId);
+    await updateGasto({
+      id: editandoId, descricao, valor,
+      mes: original.mes, ano: original.ano, criadoEm: original.criadoEm,
+      tipo: original.tipo || "geral"
+    });
+    showToast("Gasto atualizado");
+  } else {
+    await addGasto({
+      descricao, valor, mes: mesAtual, ano: anoAtual, criadoEm: Date.now(), tipo: abaAtual
+    });
+    showToast("Gasto adicionado");
+  }
+
+  formOverlay.classList.remove("show");
+  render();
+});
+
+// ---------- Formulário: saldo inicial ----------
+const balanceOverlay = document.getElementById("balanceOverlay");
+const inputSaldo = document.getElementById("inputSaldo");
+
+function openBalanceForm(valorAtual) {
+  inputSaldo.value = valorAtual !== null ? valorAtual : "";
+  balanceOverlay.classList.add("show");
+  setTimeout(() => inputSaldo.focus(), 100);
+}
+
+document.getElementById("cancelBalance").addEventListener("click", () => {
+  balanceOverlay.classList.remove("show");
+});
+
+document.getElementById("saveBalance").addEventListener("click", async () => {
+  const valor = parseFloat(inputSaldo.value);
+  if (isNaN(valor) || valor < 0) { showToast("Digite um valor válido"); return; }
+
+  await setSaldo(anoAtual, mesAtual, valor);
+  balanceOverlay.classList.remove("show");
+  showToast("Saldo inicial definido");
+  render();
+});
+
+// ---------- Confirmação de exclusão ----------
+const confirmOverlay = document.getElementById("confirmOverlay");
+
+function openDeleteConfirm(id) {
+  excluindoId = id;
+  confirmOverlay.classList.add("show");
+}
+
+document.getElementById("cancelDelete").addEventListener("click", () => {
+  confirmOverlay.classList.remove("show");
+  excluindoId = null;
+});
+
+document.getElementById("confirmDelete").addEventListener("click", async () => {
+  if (excluindoId != null) {
+    await deleteGasto(excluindoId);
+    showToast("Gasto excluído");
+  }
+  confirmOverlay.classList.remove("show");
+  excluindoId = null;
+  render();
+});
+
+// ---------- Toast ----------
+let toastTimer;
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("show"), 2200);
+}
+</script>
+
+</body>
+</html>
