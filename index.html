@@ -8,7 +8,8 @@
   :root{
     --paper: #F6F1E4;
     --paper-line: #E1D8C2;
-    --ink: #24313E;
+    /* COR DOS BOTÕES/DESTAQUES — altere aqui para mudar a cor principal do app */
+    --ink: #2F4A3E;
     --ink-soft: #6B7A87;
     --rust: #9A3E33;
     --rust-soft: #C97C6F;
@@ -197,6 +198,7 @@
   .action-btn:active{ background: var(--paper-line); }
   .action-btn.danger{ color: var(--rust); border-color: var(--rust-soft); }
   .action-btn.cancel{ border:none; background:none; color: var(--ink-soft); margin-top: 4px; }
+  #backupOverlay .action-btn{ text-align:left; }
 
   .toast{
     position:fixed; bottom: 96px; left:50%; transform: translateX(-50%) translateY(20px);
@@ -346,7 +348,7 @@
     <h2>Configurações</h2>
     <div class="action-list">
       <button class="action-btn" id="btnEditarSaldoConfig">Editar saldo inicial</button>
-      <button class="action-btn" id="btnCompartilharImagem">Compartilhar registros (imagem)</button>
+      <button class="action-btn" id="btnCompartilharImagem">Compartilhar registro</button>
       <button class="action-btn" id="btnExportar">Exportar backup (.json)</button>
       <button class="action-btn" id="btnImportar">Importar backup (.json)</button>
       <button class="action-btn cancel" id="btnFecharBackup">Fechar</button>
@@ -372,10 +374,10 @@
 <script>
 // ---------- IndexedDB ----------
 // ============================================================
-// LOGO (opcional): cole aqui o código base64 da imagem da logo
-// no formato completo "data:image/png;base64,XXXXXXXX..."
+// LOGO (opcional) — COLE AQUI O CÓDIGO BASE64 DA LOGO
+// Formato completo: "data:image/png;base64,XXXXXXXX..."
 // Enquanto ficar vazia (""), a imagem compartilhada usa um
-// símbolo padrão no lugar da logo.
+// símbolo padrão ("CG") no lugar da logo.
 // ============================================================
 const LOGO_BASE64 = "";
 
@@ -758,6 +760,14 @@ document.getElementById("btnCompartilharImagem").addEventListener("click", async
 });
 
 // ---------- Compartilhar registros como imagem PNG ----------
+// Paginação em formato A4 (proporção 210x297mm, renderizado em pixels)
+const A4_LARGURA = 794;
+const A4_ALTURA = 1123;
+const A4_MARGEM = 40;
+const A4_LINHA_ALTURA = 34;
+const A4_ALTURA_CABECALHO = 170;
+const A4_ALTURA_RODAPE_TOTAL = 70;
+
 async function compartilharComoImagem() {
   const todos = await getAllGastos();
   const doAba = todos
@@ -768,116 +778,152 @@ async function compartilharComoImagem() {
   const total = doAba.reduce((s, g) => s + g.valor, 0);
   const nomeAba = abaAtual === "cartao" ? "Cartão" : "Geral";
 
-  const largura = 800;
-  const linhaAltura = 48;
-  const alturaCabecalho = 190;
-  const alturaRodape = 70;
-  const altura = alturaCabecalho + Math.max(doAba.length, 1) * linhaAltura + alturaRodape;
+  // quantas linhas cabem numa página A4 (a última página reserva espaço pro total)
+  const alturaUtil = A4_ALTURA - A4_ALTURA_CABECALHO - A4_MARGEM;
+  const linhasPorPagina = Math.floor((alturaUtil - A4_ALTURA_RODAPE_TOTAL) / A4_LINHA_ALTURA);
+  const linhasPorPaginaIntermediaria = Math.floor(alturaUtil / A4_LINHA_ALTURA);
 
-  const canvas = document.createElement("canvas");
-  canvas.width = largura;
-  canvas.height = altura;
-  const ctx = canvas.getContext("2d");
-
-  // fundo
-  ctx.fillStyle = "#F6F1E4";
-  ctx.fillRect(0, 0, largura, altura);
-
-  // cabeçalho
-  ctx.fillStyle = "#24313E";
-  ctx.font = "600 28px Georgia, serif";
-  ctx.fillText("Controle de Gastos", 32, 50);
-
-  ctx.fillStyle = "#6B7A87";
-  ctx.font = "14px -apple-system, sans-serif";
-  if (perfil) ctx.fillText(`${perfil.nome} · ID ${perfil.id}`, 32, 74);
-
-  ctx.fillStyle = "#24313E";
-  ctx.font = "600 18px -apple-system, sans-serif";
-  ctx.fillText(`${nomeAba} — ${MESES[mesAtual]} ${anoAtual}`, 32, 112);
-
-  ctx.strokeStyle = "#E1D8C2";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(32, alturaCabecalho - 20);
-  ctx.lineTo(largura - 32, alturaCabecalho - 20);
-  ctx.stroke();
-
-  // logo (se houver base64 definido) ou símbolo padrão
-  await desenharLogo(ctx, largura - 90, 24, 56);
-
-  // lista
-  let y = alturaCabecalho + 10;
-  if (doAba.length === 0) {
-    ctx.fillStyle = "#6B7A87";
-    ctx.font = "15px -apple-system, sans-serif";
-    ctx.fillText("Nenhum gasto registrado neste mês.", 32, y + 20);
-    y += linhaAltura;
+  // monta as páginas: só a última página leva o total, então ela cabe menos linhas
+  const paginas = [];
+  if (doAba.length <= linhasPorPagina) {
+    paginas.push(doAba);
   } else {
-    doAba.forEach(g => {
-      ctx.fillStyle = "#6B7A87";
-      ctx.font = "12px -apple-system, sans-serif";
-      ctx.fillText(formatDataCurta(g.criadoEm), 32, y + 18);
-
-      ctx.fillStyle = "#24313E";
-      ctx.font = "15px -apple-system, sans-serif";
-      ctx.fillText(g.descricao, 100, y + 20);
-
-      ctx.font = "600 15px -apple-system, sans-serif";
-      ctx.textAlign = "right";
-      ctx.fillText(formatMoeda(g.valor), largura - 32, y + 20);
-      ctx.textAlign = "left";
-
-      ctx.strokeStyle = "#E1D8C2";
-      ctx.beginPath();
-      ctx.moveTo(32, y + linhaAltura - 10);
-      ctx.lineTo(largura - 32, y + linhaAltura - 10);
-      ctx.stroke();
-
-      y += linhaAltura;
-    });
+    let restante = [...doAba];
+    while (restante.length > linhasPorPaginaIntermediaria + linhasPorPagina) {
+      paginas.push(restante.splice(0, linhasPorPaginaIntermediaria));
+    }
+    // o que sobrou pode não caber inteiro com o total na mesma página
+    if (restante.length > linhasPorPagina) {
+      paginas.push(restante.splice(0, linhasPorPaginaIntermediaria));
+    }
+    paginas.push(restante);
   }
 
-  // total
-  ctx.strokeStyle = "#24313E";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(32, y + 14);
-  ctx.lineTo(largura - 32, y + 14);
-  ctx.stroke();
+  const arquivos = [];
+  for (let i = 0; i < paginas.length; i++) {
+    const ehUltima = i === paginas.length - 1;
+    const blob = await desenharPaginaA4(paginas[i], {
+      nomeAba, perfil, pagina: i + 1, totalPaginas: paginas.length,
+      mostrarTotal: ehUltima, total
+    });
+    const sufixo = paginas.length > 1 ? `-pagina-${i + 1}` : "";
+    const nomeArquivo = `controle-de-gastos-${nomeAba.toLowerCase()}-${MESES[mesAtual].toLowerCase()}-${anoAtual}${sufixo}.png`;
+    arquivos.push(new File([blob], nomeArquivo, { type: "image/png" }));
+  }
 
-  ctx.fillStyle = "#24313E";
-  ctx.font = "600 16px -apple-system, sans-serif";
-  ctx.fillText("Total", 32, y + 44);
-  ctx.textAlign = "right";
-  ctx.font = "600 20px -apple-system, sans-serif";
-  ctx.fillStyle = "#9A3E33";
-  ctx.fillText(formatMoeda(total), largura - 32, y + 46);
-  ctx.textAlign = "left";
-
-  canvas.toBlob(async (blob) => {
-    const nomeArquivo = `controle-de-gastos-${nomeAba.toLowerCase()}-${MESES[mesAtual].toLowerCase()}-${anoAtual}.png`;
-    const arquivo = new File([blob], nomeArquivo, { type: "image/png" });
-
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [arquivo] })) {
-      try {
-        await navigator.share({ files: [arquivo], title: "Controle de Gastos" });
-        return;
-      } catch (err) {
-        // usuário cancelou o compartilhamento, ou falhou — cai no download abaixo
-      }
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: arquivos })) {
+    try {
+      await navigator.share({ files: arquivos, title: "Controle de Gastos" });
+      return;
+    } catch (err) {
+      // usuário cancelou o compartilhamento, ou falhou — cai no download abaixo
     }
+  }
 
-    const url = URL.createObjectURL(blob);
+  arquivos.forEach(arquivo => {
+    const url = URL.createObjectURL(arquivo);
     const a = document.createElement("a");
     a.href = url;
-    a.download = nomeArquivo;
+    a.download = arquivo.name;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast("Imagem salva");
-  }, "image/png");
+  });
+  showToast(arquivos.length > 1 ? "Imagens salvas" : "Imagem salva");
+}
+
+function desenharPaginaA4(itens, { nomeAba, perfil, pagina, totalPaginas, mostrarTotal, total }) {
+  return new Promise(async (resolve) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = A4_LARGURA;
+    canvas.height = A4_ALTURA;
+    const ctx = canvas.getContext("2d");
+
+    // fundo
+    ctx.fillStyle = "#F6F1E4";
+    ctx.fillRect(0, 0, A4_LARGURA, A4_ALTURA);
+
+    // cabeçalho
+    ctx.fillStyle = "#2F4A3E";
+    ctx.font = "600 28px Georgia, serif";
+    ctx.fillText("Controle de Gastos", A4_MARGEM, 56);
+
+    ctx.fillStyle = "#6B7A87";
+    ctx.font = "14px -apple-system, sans-serif";
+    if (perfil) ctx.fillText(`${perfil.nome} · ID ${perfil.id}`, A4_MARGEM, 80);
+
+    ctx.fillStyle = "#2F4A3E";
+    ctx.font = "600 18px -apple-system, sans-serif";
+    let tituloLinha = `${nomeAba} — ${MESES[mesAtual]} ${anoAtual}`;
+    if (totalPaginas > 1) tituloLinha += ` (página ${pagina} de ${totalPaginas})`;
+    ctx.fillText(tituloLinha, A4_MARGEM, 118);
+
+    ctx.strokeStyle = "#E1D8C2";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(A4_MARGEM, A4_ALTURA_CABECALHO - 20);
+    ctx.lineTo(A4_LARGURA - A4_MARGEM, A4_ALTURA_CABECALHO - 20);
+    ctx.stroke();
+
+    // logo (se houver base64 definido) ou símbolo padrão — só na primeira página
+    if (pagina === 1) {
+      await desenharLogo(ctx, A4_LARGURA - A4_MARGEM - 56, 28, 56);
+    }
+
+    // lista
+    let y = A4_ALTURA_CABECALHO + 6;
+    if (itens.length === 0) {
+      ctx.fillStyle = "#6B7A87";
+      ctx.font = "15px -apple-system, sans-serif";
+      ctx.fillText("Nenhum gasto registrado neste mês.", A4_MARGEM, y + 20);
+      y += A4_LINHA_ALTURA;
+    } else {
+      itens.forEach(g => {
+        ctx.fillStyle = "#6B7A87";
+        ctx.font = "12px -apple-system, sans-serif";
+        ctx.fillText(formatDataCurta(g.criadoEm), A4_MARGEM, y + 16);
+
+        ctx.fillStyle = "#2F4A3E";
+        ctx.font = "14px -apple-system, sans-serif";
+        ctx.fillText(g.descricao, A4_MARGEM + 70, y + 18);
+
+        ctx.font = "600 14px -apple-system, sans-serif";
+        ctx.textAlign = "right";
+        ctx.fillText(formatMoeda(g.valor), A4_LARGURA - A4_MARGEM, y + 18);
+        ctx.textAlign = "left";
+
+        ctx.strokeStyle = "#E1D8C2";
+        ctx.beginPath();
+        ctx.moveTo(A4_MARGEM, y + A4_LINHA_ALTURA - 8);
+        ctx.lineTo(A4_LARGURA - A4_MARGEM, y + A4_LINHA_ALTURA - 8);
+        ctx.stroke();
+
+        y += A4_LINHA_ALTURA;
+      });
+    }
+
+    // total — só na última página
+    if (mostrarTotal) {
+      ctx.strokeStyle = "#2F4A3E";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(A4_MARGEM, y + 14);
+      ctx.lineTo(A4_LARGURA - A4_MARGEM, y + 14);
+      ctx.stroke();
+
+      ctx.fillStyle = "#2F4A3E";
+      ctx.font = "600 16px -apple-system, sans-serif";
+      ctx.fillText("Total", A4_MARGEM, y + 44);
+      ctx.textAlign = "right";
+      ctx.font = "600 20px -apple-system, sans-serif";
+      ctx.fillStyle = "#9A3E33";
+      ctx.fillText(formatMoeda(total), A4_LARGURA - A4_MARGEM, y + 46);
+      ctx.textAlign = "left";
+    }
+
+    canvas.toBlob((blob) => resolve(blob), "image/png");
+  });
 }
 
 function desenharLogo(ctx, x, y, tamanho) {
@@ -905,7 +951,7 @@ function desenharLogo(ctx, x, y, tamanho) {
 
 function desenharSimboloPadrao(ctx, x, y, tamanho) {
   ctx.save();
-  ctx.fillStyle = "#24313E";
+  ctx.fillStyle = "#2F4A3E";
   ctx.beginPath();
   ctx.arc(x + tamanho / 2, y + tamanho / 2, tamanho / 2, 0, Math.PI * 2);
   ctx.fill();
