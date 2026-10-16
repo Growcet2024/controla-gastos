@@ -6,14 +6,14 @@
 <title>Controle de Gastos</title>
 <style>
   :root{
-    --paper: #F6F1E4;
-    --paper-line: #E1D8C2;
+    --paper: #F6F1E4;   /* COR fundo geral */
+    --paper-line: #E1D8C2;   /* COR das bordas,   */
     /* COR DOS BOTÕES/DESTAQUES — altere aqui para mudar a cor principal do app */
-    --ink: #2F4A3E;
-    --ink-soft: #6B7A87;
-    --rust: #9A3E33;
-    --rust-soft: #C97C6F;
-    --card: #FFFDF8;
+    --ink: #2F4A3E;  /* COR dos botões verde */
+    --ink-soft: #6B7A87;   /* COR dos textos cinza */
+    --rust: #9A3E33;    /* COR de alerta bt excluir */
+    --rust-soft: #C97C6F;   /* COR borda bt excluir */
+    --card: #FFFDF8;    /* COR fundo card branco amarelado */
   }
   *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
@@ -54,6 +54,7 @@
     color: var(--ink);
   }
   .brand-sub{ font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
+  .offline-badge{ font-weight:700; color: var(--ink); font-size: 12px; margin-top: 6px; }
 
   .profile-block{ padding: 10px 22px 2px; text-align:center; }
   .profile-display{
@@ -200,6 +201,15 @@
   .action-btn.cancel{ border:none; background:none; color: var(--ink-soft); margin-top: 4px; }
   #backupOverlay .action-btn{ text-align:left; }
 
+  .how-to p{
+    font-size: 13.5px; line-height:1.6; color: var(--ink); margin-bottom: 14px;
+  }
+  .how-to p b{ color: var(--ink); }
+  .how-to-aviso{
+    background: var(--paper); border: 1px solid var(--paper-line);
+    border-radius: 8px; padding: 12px 14px; color: var(--ink-soft) !important;
+  }
+
   .toast{
     position:fixed; bottom: 96px; left:50%; transform: translateX(-50%) translateY(20px);
     background: var(--ink); color: var(--paper); padding: 12px 20px; border-radius: 8px;
@@ -255,6 +265,7 @@
     <button class="gear-btn" id="gearBtn" aria-label="Configurações">⚙</button>
     <div class="brand">Controle de Gastos</div>
     <div class="brand-sub">Seus gastos, mês a mês</div>
+    <div class="offline-badge">App funciona sem internet</div>
   </header>
 
   <div class="profile-block" id="profileArea"></div>
@@ -342,11 +353,50 @@
   </div>
 </div>
 
+<!-- overlay: como usar -->
+<div class="overlay" id="comoUsarOverlay">
+  <div class="sheet" style="max-height:80vh; overflow-y:auto;">
+    <h2>Como usar</h2>
+    <div class="how-to">
+      <p><b>Abas Geral e Cartão</b><br>
+      Cada mês tem duas listas separadas: Geral (gastos do dia a dia) e Cartão (gastos no cartão). Cada uma tem seu próprio total, e o Cartão não entra no saldo/total da Geral.</p>
+
+      <p><b>Saldo restante</b><br>
+      Na aba Geral, defina um saldo inicial em Configurações → Editar saldo inicial. Ele é descontado automaticamente a cada gasto lançado no mês.</p>
+
+      <p><b>Funciona sem internet</b><br>
+      O app guarda tudo direto no seu aparelho — não envia nem salva nada na internet. Por isso funciona mesmo sem conexão, mas os dados ficam só nesse celular (por isso o backup é importante se trocar de aparelho).</p>
+
+      <p><b>Adicionar, editar e excluir</b><br>
+      Toque em "+ Novo gasto" para lançar. Toque num item da lista para editar ou excluir.</p>
+
+      <p><b>Calendário</b><br>
+      O ícone de calendário no topo mostra os dias do mês atual, só como referência visual.</p>
+
+      <p><b>Compartilhar registro</b><br>
+      Em Configurações, gera uma imagem com a lista do mês da aba aberta, pronta para enviar por WhatsApp ou outro app.</p>
+
+      <p><b>Backup — Exportar</b><br>
+      Em Configurações → Exportar backup, gera um arquivo .json com todos os seus dados (gastos, saldos, nome e ID). Guarde esse arquivo num lugar seguro, de preferência no Google Drive.</p>
+
+      <p><b>Backup — Importar</b><br>
+      Em Configurações → Importar backup, escolha o arquivo .json salvo anteriormente para restaurar todos os dados.</p>
+
+      <p class="how-to-aviso"><b>Atenção ao importar:</b><br>
+      o app só encontra o arquivo se ele estiver na pasta Downloads do celular ou no Google Drive. Se você recebeu o arquivo de backup pelo WhatsApp (de outro celular, por exemplo), primeiro salve/mova esse arquivo para a pasta Downloads ou, de preferência, para o Google Drive — só depois disso ele aparece na hora de importar.</p>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" id="fecharComoUsar" style="flex:1;">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- overlay: configurações -->
 <div class="overlay" id="backupOverlay">
   <div class="sheet">
     <h2>Configurações</h2>
     <div class="action-list">
+      <button class="action-btn" id="btnComoUsar">Como usar</button>
       <button class="action-btn" id="btnEditarSaldoConfig">Editar saldo inicial</button>
       <button class="action-btn" id="btnCompartilharImagem">Compartilhar registro</button>
       <button class="action-btn" id="btnExportar">Exportar backup (.json)</button>
@@ -742,6 +792,15 @@ document.getElementById("gearBtn").addEventListener("click", () => {
 });
 document.getElementById("btnFecharBackup").addEventListener("click", () => {
   backupOverlay.classList.remove("show");
+});
+
+const comoUsarOverlay = document.getElementById("comoUsarOverlay");
+document.getElementById("btnComoUsar").addEventListener("click", () => {
+  backupOverlay.classList.remove("show");
+  comoUsarOverlay.classList.add("show");
+});
+document.getElementById("fecharComoUsar").addEventListener("click", () => {
+  comoUsarOverlay.classList.remove("show");
 });
 
 document.getElementById("btnEditarSaldoConfig").addEventListener("click", async () => {
