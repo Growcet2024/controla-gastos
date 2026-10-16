@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Livro de Gastos</title>
+<title>Controle de Gastos</title>
 <style>
   :root{
     --paper: #F6F1E4;
@@ -250,8 +250,8 @@
         <line x1="3" y1="10" x2="21" y2="10"></line>
       </svg>
     </button>
-    <button class="gear-btn" id="gearBtn" aria-label="Backup">⚙</button>
-    <div class="brand">Livro de Gastos</div>
+    <button class="gear-btn" id="gearBtn" aria-label="Configurações">⚙</button>
+    <div class="brand">Controle de Gastos</div>
     <div class="brand-sub">Seus gastos, mês a mês</div>
   </header>
 
@@ -340,11 +340,13 @@
   </div>
 </div>
 
-<!-- overlay: backup -->
+<!-- overlay: configurações -->
 <div class="overlay" id="backupOverlay">
   <div class="sheet">
-    <h2>Backup</h2>
+    <h2>Configurações</h2>
     <div class="action-list">
+      <button class="action-btn" id="btnEditarSaldoConfig">Editar saldo inicial</button>
+      <button class="action-btn" id="btnCompartilharImagem">Compartilhar registros (imagem)</button>
       <button class="action-btn" id="btnExportar">Exportar backup (.json)</button>
       <button class="action-btn" id="btnImportar">Importar backup (.json)</button>
       <button class="action-btn cancel" id="btnFecharBackup">Fechar</button>
@@ -369,6 +371,14 @@
 
 <script>
 // ---------- IndexedDB ----------
+// ============================================================
+// LOGO (opcional): cole aqui o código base64 da imagem da logo
+// no formato completo "data:image/png;base64,XXXXXXXX..."
+// Enquanto ficar vazia (""), a imagem compartilhada usa um
+// símbolo padrão no lugar da logo.
+// ============================================================
+const LOGO_BASE64 = "";
+
 let db;
 const DB_NAME = "livro-gastos-db";
 const STORE_GASTOS = "gastos";
@@ -552,10 +562,8 @@ function renderBalanceAreaGeral(saldoInicial, totalGasto) {
     <div class="balance-block">
       <div class="balance-caption">saldo restante</div>
       <div class="balance-value ${negativo ? "negativo" : ""}">${formatMoeda(restante)}</div>
-      <button class="balance-edit" id="btnEditarSaldo">editar saldo inicial (${formatMoeda(saldoInicial)})</button>
       <div class="sub-total">total gasto no mês: <b>${formatMoeda(totalGasto)}</b></div>
     </div>`;
-  document.getElementById("btnEditarSaldo").addEventListener("click", () => openBalanceForm(saldoInicial));
 }
 
 function renderBalanceAreaCartao(totalCartao) {
@@ -724,7 +732,7 @@ async function renderProfile() {
   });
 }
 
-// ---------- Backup ----------
+// ---------- Configurações (backup + saldo + compartilhar) ----------
 const backupOverlay = document.getElementById("backupOverlay");
 
 document.getElementById("gearBtn").addEventListener("click", () => {
@@ -733,6 +741,183 @@ document.getElementById("gearBtn").addEventListener("click", () => {
 document.getElementById("btnFecharBackup").addEventListener("click", () => {
   backupOverlay.classList.remove("show");
 });
+
+document.getElementById("btnEditarSaldoConfig").addEventListener("click", async () => {
+  if (abaAtual !== "geral") {
+    showToast("Saldo inicial é só na aba Geral");
+    return;
+  }
+  const saldoAtual = await getSaldo(anoAtual, mesAtual);
+  backupOverlay.classList.remove("show");
+  openBalanceForm(saldoAtual);
+});
+
+document.getElementById("btnCompartilharImagem").addEventListener("click", async () => {
+  backupOverlay.classList.remove("show");
+  await compartilharComoImagem();
+});
+
+// ---------- Compartilhar registros como imagem PNG ----------
+async function compartilharComoImagem() {
+  const todos = await getAllGastos();
+  const doAba = todos
+    .filter(g => g.mes === mesAtual && g.ano === anoAtual && (g.tipo || "geral") === abaAtual)
+    .sort((a, b) => a.criadoEm - b.criadoEm);
+
+  const perfil = await getPerfil();
+  const total = doAba.reduce((s, g) => s + g.valor, 0);
+  const nomeAba = abaAtual === "cartao" ? "Cartão" : "Geral";
+
+  const largura = 800;
+  const linhaAltura = 48;
+  const alturaCabecalho = 190;
+  const alturaRodape = 70;
+  const altura = alturaCabecalho + Math.max(doAba.length, 1) * linhaAltura + alturaRodape;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = largura;
+  canvas.height = altura;
+  const ctx = canvas.getContext("2d");
+
+  // fundo
+  ctx.fillStyle = "#F6F1E4";
+  ctx.fillRect(0, 0, largura, altura);
+
+  // cabeçalho
+  ctx.fillStyle = "#24313E";
+  ctx.font = "600 28px Georgia, serif";
+  ctx.fillText("Controle de Gastos", 32, 50);
+
+  ctx.fillStyle = "#6B7A87";
+  ctx.font = "14px -apple-system, sans-serif";
+  if (perfil) ctx.fillText(`${perfil.nome} · ID ${perfil.id}`, 32, 74);
+
+  ctx.fillStyle = "#24313E";
+  ctx.font = "600 18px -apple-system, sans-serif";
+  ctx.fillText(`${nomeAba} — ${MESES[mesAtual]} ${anoAtual}`, 32, 112);
+
+  ctx.strokeStyle = "#E1D8C2";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(32, alturaCabecalho - 20);
+  ctx.lineTo(largura - 32, alturaCabecalho - 20);
+  ctx.stroke();
+
+  // logo (se houver base64 definido) ou símbolo padrão
+  await desenharLogo(ctx, largura - 90, 24, 56);
+
+  // lista
+  let y = alturaCabecalho + 10;
+  if (doAba.length === 0) {
+    ctx.fillStyle = "#6B7A87";
+    ctx.font = "15px -apple-system, sans-serif";
+    ctx.fillText("Nenhum gasto registrado neste mês.", 32, y + 20);
+    y += linhaAltura;
+  } else {
+    doAba.forEach(g => {
+      ctx.fillStyle = "#6B7A87";
+      ctx.font = "12px -apple-system, sans-serif";
+      ctx.fillText(formatDataCurta(g.criadoEm), 32, y + 18);
+
+      ctx.fillStyle = "#24313E";
+      ctx.font = "15px -apple-system, sans-serif";
+      ctx.fillText(g.descricao, 100, y + 20);
+
+      ctx.font = "600 15px -apple-system, sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText(formatMoeda(g.valor), largura - 32, y + 20);
+      ctx.textAlign = "left";
+
+      ctx.strokeStyle = "#E1D8C2";
+      ctx.beginPath();
+      ctx.moveTo(32, y + linhaAltura - 10);
+      ctx.lineTo(largura - 32, y + linhaAltura - 10);
+      ctx.stroke();
+
+      y += linhaAltura;
+    });
+  }
+
+  // total
+  ctx.strokeStyle = "#24313E";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(32, y + 14);
+  ctx.lineTo(largura - 32, y + 14);
+  ctx.stroke();
+
+  ctx.fillStyle = "#24313E";
+  ctx.font = "600 16px -apple-system, sans-serif";
+  ctx.fillText("Total", 32, y + 44);
+  ctx.textAlign = "right";
+  ctx.font = "600 20px -apple-system, sans-serif";
+  ctx.fillStyle = "#9A3E33";
+  ctx.fillText(formatMoeda(total), largura - 32, y + 46);
+  ctx.textAlign = "left";
+
+  canvas.toBlob(async (blob) => {
+    const nomeArquivo = `controle-de-gastos-${nomeAba.toLowerCase()}-${MESES[mesAtual].toLowerCase()}-${anoAtual}.png`;
+    const arquivo = new File([blob], nomeArquivo, { type: "image/png" });
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+      try {
+        await navigator.share({ files: [arquivo], title: "Controle de Gastos" });
+        return;
+      } catch (err) {
+        // usuário cancelou o compartilhamento, ou falhou — cai no download abaixo
+      }
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nomeArquivo;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Imagem salva");
+  }, "image/png");
+}
+
+function desenharLogo(ctx, x, y, tamanho) {
+  return new Promise((resolve) => {
+    if (LOGO_BASE64) {
+      const img = new Image();
+      img.onload = () => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x + tamanho / 2, y + tamanho / 2, tamanho / 2, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(img, x, y, tamanho, tamanho);
+        ctx.restore();
+        resolve();
+      };
+      img.onerror = () => { desenharSimboloPadrao(ctx, x, y, tamanho); resolve(); };
+      img.src = LOGO_BASE64;
+    } else {
+      desenharSimboloPadrao(ctx, x, y, tamanho);
+      resolve();
+    }
+  });
+}
+
+function desenharSimboloPadrao(ctx, x, y, tamanho) {
+  ctx.save();
+  ctx.fillStyle = "#24313E";
+  ctx.beginPath();
+  ctx.arc(x + tamanho / 2, y + tamanho / 2, tamanho / 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#F6F1E4";
+  ctx.font = `600 ${Math.floor(tamanho * 0.45)}px Georgia, serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("CG", x + tamanho / 2, y + tamanho / 2 + 1);
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.restore();
+}
 
 document.getElementById("btnExportar").addEventListener("click", async () => {
   const gastos = await getAllGastos();
