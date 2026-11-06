@@ -1,843 +1,1272 @@
 <!DOCTYPE html>
-<!-- MEU CONSUMO (Álcool ou Gasolina) | VERSÃO 13 -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Meu consumo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Controle de Gastos</title>
 <style>
-/* ===== CORES (tudo em hexadecimal) ===== */
-:root{
-  --verde:#2A6B45;          /* destaque principal: botões do menu e ponto do medidor */
-  --verde-escuro:#1d4d32;   /* botão pressionado e textos verdes no menu */
-  --verde-claro:#e6f4ea;    /* fundos claros no menu */
-  --laranja:#d98a1b;        /* ponto do medidor quando compensa gasolina */
-  --borda:#d5e6da;          /* bordas dos campos e itens do menu */
-  --texto:#1c2b21;          /* texto principal no menu (fundo branco) */
-  --suave:#5d7165;          /* texto secundário no menu */
-  --erro:#c0392b;           /* mensagens de erro */
+  :root{
+    --paper: #F6F1E4;
+    --paper-line: #E1D8C2;
+    /* COR DOS BOTÕES/DESTAQUES — altere aqui para mudar a cor principal do app */
+    --ink: #2F4A3E;
+    --ink-soft: #6B7A87;
+    --rust: #9A3E33;
+    --rust-soft: #C97C6F;
+    --card: #FFFDF8;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-user-select:none; user-select:none;
+    overscroll-behavior:none;
+  }
+  input{ -webkit-user-select:text; user-select:text; }
+  .app{
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display:flex;
+    flex-direction:column;
+    padding-bottom: 96px;
+  }
+  header{ padding: 26px 22px 14px; text-align:center; position:relative; }
+  .gear-btn{
+    position:absolute; top: 20px; right: 18px;
+    background:none; border:none; font-size: 20px; color: var(--ink-soft);
+    width: 36px; height: 36px; border-radius: 50%; cursor:pointer;
+  }
+  .gear-btn:active{ background: var(--paper-line); }
+  .calendar-btn{
+    position:absolute; top: 20px; left: 18px;
+    background:none; border:none; color: var(--ink-soft);
+    width: 36px; height: 36px; border-radius: 8px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .calendar-btn:active{ background: var(--paper-line); }
+  .brand{
+    font-family: Georgia, "Source Serif 4", serif;
+    font-size: 25px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .brand-sub{ font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
+  .offline-badge{ font-weight:700; color: var(--ink); font-size: 12px; margin-top: 6px; }
 
-  /* tela inicial (sobre a imagem) */
-  --branco:#ffffff;         /* todos os textos da tela inicial */
-  --veu:#0000004d;          /* película escura sobre a imagem, garante contraste */
-  --campo:#ffffff29;        /* fundo leve dos campos de preço */
-  --campo-borda:#ffffff66;  /* borda dos campos de preço */
-  --res-alcool:#2e9e5ba6;   /* sombra colorida do resultado: compensa álcool */
-  --res-gasolina:#d98a1ba6; /* sombra colorida do resultado: compensa gasolina */
-  --res-vazio:#00000040;    /* sombra do resultado antes de digitar */
-}
+  .profile-block{ padding: 10px 22px 2px; text-align:center; }
+  .profile-display{
+    display:inline-flex; align-items:center; gap: 8px;
+    font-size: 12.5px; color: var(--ink-soft);
+    background: var(--card); border: 1px solid var(--paper-line);
+    border-radius: 8px; padding: 6px 14px; cursor:pointer;
+  }
+  .profile-display b{ color: var(--ink); font-weight:600; }
+  .profile-form{ display:flex; gap: 8px; justify-content:center; }
+  .profile-form input{
+    max-width: 220px; padding: 9px 12px; border: 1px solid var(--paper-line);
+    border-radius: 8px; font-size: 14px; background: var(--card); color: var(--ink);
+  }
+  .profile-form button{
+    background: var(--ink); color: var(--paper); border:none; border-radius: 8px;
+    padding: 9px 16px; font-size: 13.5px; font-weight: 600; cursor:pointer;
+  }
 
-/* ===== BASE ===== */
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{min-height:100%}
-body{
-  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--texto);
-  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
-}
-button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
-:focus-visible{outline:2px solid var(--branco);outline-offset:2px}
-.oculto{display:none!important}
+  .month-nav{
+    display:flex; align-items:center; justify-content:center;
+    gap: 18px; padding: 4px 22px 6px;
+  }
+  .month-nav button{
+    background:none; border:none; font-size: 20px;
+    color: var(--ink-soft); width: 34px; height: 34px;
+    border-radius: 50%; cursor:pointer;
+  }
+  .month-nav button:active{ background: var(--paper-line); }
+  .month-label{
+    font-family: Georgia, "Source Serif 4", serif;
+    font-size: 18px; min-width: 170px; text-align:center;
+    text-transform: capitalize;
+  }
 
-/* ===== IMAGEM DE FUNDO (fixa atrás de tudo) + PELÍCULA ===== */
-#fundo{position:fixed;inset:0;z-index:-2;background:center/cover no-repeat}
-#veu{position:fixed;inset:0;z-index:-1;background:var(--veu)}
-/* fundo provisório em verde suave, usado enquanto não houver imagem */
-#fundo.verde,.previa.verde{background:linear-gradient(160deg,#4fae75,#2f8a57 55%,#58b57e)}
+  .tab-bar{
+    display:flex; gap: 6px; padding: 4px 22px 10px;
+  }
+  .tab-btn{
+    flex:1; padding: 9px 0; border-radius: 8px; border: 1px solid var(--paper-line);
+    background: transparent; color: var(--ink-soft); font-size: 13.5px; font-weight: 600; cursor:pointer;
+  }
+  .tab-btn.active{ background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .tab-btn:active{ opacity:0.85; }
 
-/* ===== TELA INICIAL (sem cards, texto branco com sombra) ===== */
-.conteudo{max-width:440px;margin:0 auto;padding:20px 18px;display:flex;flex-direction:column;gap:22px;color:var(--branco);
-  text-shadow:0 1px 3px #00000099,0 0 1px #0000004d}
-h1{font-size:28px;font-weight:700;display:flex;align-items:center;gap:10px}
-/* ícone da bomba de combustível (SVG, igual em qualquer aparelho) */
-.icone-bomba{width:30px;height:30px;flex-shrink:0;filter:drop-shadow(0 1px 2px #00000099)}
-.sem-internet{font-size:16px;font-weight:600;margin-top:10px}
+  .balance-block{ text-align:center; padding: 16px 22px 20px; }
+  .balance-caption{ font-size: 12.5px; color: var(--ink-soft); }
+  .balance-value{
+    font-size: 40px; font-weight: 600; font-variant-numeric: tabular-nums;
+    color: var(--ink); letter-spacing: -0.5px; margin-top: 2px;
+  }
+  .balance-value.negativo{ color: var(--rust); }
+  .balance-edit{
+    display:inline-block; margin-top: 8px; font-size: 12.5px; color: var(--rust);
+    background:none; border:none; text-decoration: underline; text-underline-offset: 3px; cursor:pointer;
+  }
+  .sub-total{
+    margin-top: 14px; font-size: 13.5px; color: var(--ink-soft);
+    padding-top: 12px; border-top: 1px solid var(--paper-line);
+  }
+  .sub-total b{ font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
 
-/* linha do perfil + engrenagem */
-.linha{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px}
-.perfil-btn{display:flex;align-items:center;gap:10px;text-align:left;min-width:0;flex:1;padding:4px 0}
-.perfil-btn .frase{font-size:16px}
-.perfil-btn .dados{display:flex;flex-direction:column;min-width:0}
-.perfil-btn .dados b{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.perfil-btn .dados small{font-size:13px;opacity:.9}
-.engrenagem{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--branco);
-  filter:drop-shadow(0 1px 2px #00000099)}
-.engrenagem:active{background:#ffffff33}
+  .no-balance{ text-align:center; padding: 18px 22px 22px; }
+  .no-balance p{ font-size: 13.5px; color: var(--ink-soft); margin-bottom: 10px; }
+  .no-balance button{
+    background: var(--ink); color: var(--paper); border:none; border-radius: 8px;
+    padding: 10px 20px; font-size: 13.5px; font-weight: 600; cursor:pointer;
+  }
 
-/* avatar: foto ou inicial */
-.avatar{border-radius:50%;background:var(--verde-claro) center/cover no-repeat;color:var(--verde-escuro);
-  display:flex;align-items:center;justify-content:center;font-weight:700;border:1px solid var(--borda);flex-shrink:0;text-shadow:none}
-.conteudo .avatar{background-color:#ffffff33;color:var(--branco);border-color:#ffffff99;text-shadow:0 1px 3px #00000099}
-.avatar.peq{width:40px;height:40px;font-size:18px}
-.avatar.grande{width:96px;height:96px;font-size:40px;margin:4px auto 0}
+  .list-wrap{ flex:1; padding: 8px 16px 0; }
+  .list-card{
+    background: var(--card); border: 1px solid var(--paper-line);
+    border-radius: 10px;
+  }
+  .row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 13px 16px; border-bottom: 1px solid var(--paper-line); gap: 10px;
+  }
+  .row:first-child{ border-radius: 10px 10px 0 0; }
+  .row:last-child{ border-bottom:none; border-radius: 0 0 10px 10px; }
+  .row:only-child{ border-radius: 10px; }
+  .row:active{ background: var(--paper); }
+  .row-main{ display:flex; align-items:baseline; gap: 10px; flex:1; min-width:0; }
+  .row-date{ font-size: 12.5px; color: var(--ink-soft); white-space:nowrap; flex-shrink:0; }
+  .row-desc{ font-size: 15px; color: var(--ink); word-break: break-word; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .row-value{ font-size: 15.5px; font-variant-numeric: tabular-nums; color: var(--ink); white-space:nowrap; }
+  .empty-state{
+    text-align:center; padding: 40px 30px; color: var(--ink-soft); font-size: 14px; line-height:1.6;
+  }
+  .empty-state strong{
+    display:block; font-family: Georgia, serif; font-size: 17px; color: var(--ink); margin-bottom: 6px;
+  }
 
-/* rótulos e campos de preço */
-label{display:block;font-size:14px;color:var(--suave);margin:14px 0 6px}
-label:first-child{margin-top:0}
-.campo{display:flex;align-items:center;gap:8px;border:1px solid var(--borda);border-radius:10px;padding:0 14px;background:#ffffff}
-.campo span{color:var(--suave);font-size:18px}
-.campo input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:28px;font-weight:600;padding:10px 0;color:var(--texto)}
-.campo:focus-within{border-color:var(--verde)}
-.campo.km input{font-size:22px}
-.conteudo label{color:var(--branco);margin:0 0 6px}
-.conteudo .grupo+.grupo{margin-top:16px}
-.conteudo .campo{background:var(--campo);border-color:var(--campo-borda);box-shadow:0 2px 8px #00000040}
-.conteudo .campo span{color:var(--branco)}
-.conteudo .campo input{color:var(--branco);text-shadow:0 1px 3px #00000099}
-.conteudo .campo input::placeholder{color:#ffffffb3}
-.conteudo .campo:focus-within{border-color:var(--branco)}
+  .fab-bar{
+    position:fixed; bottom:0; left:0; right:0; display:flex; justify-content:center;
+    padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--paper) 60%, transparent);
+  }
+  .fab{
+    background: var(--ink); color: var(--paper); border:none; border-radius: 8px;
+    padding: 14px 26px; font-size: 15px; font-weight: 600; display:flex; align-items:center;
+    gap:8px; cursor:pointer; box-shadow: 0 6px 16px rgba(36,49,62,0.25);
+    max-width: 448px; width:100%; justify-content:center;
+  }
+  .fab:active{ background: #1a242e; }
 
-/* resultado: texto branco sobre sombra translúcida colorida */
-.res{border-radius:14px;padding:16px;text-align:center;box-shadow:0 4px 16px #00000040}
-.res.vazio{background:var(--res-vazio)}
-.res.alcool{background:var(--res-alcool)}
-.res.gasolina{background:var(--res-gasolina)}
-#resT{font-size:24px;font-weight:700}
-#resP{font-size:44px;font-weight:700;line-height:1.1;margin-top:2px}
-#resS{font-size:14px;margin-top:4px}
+  .overlay{
+    position:fixed; inset:0; background: rgba(36,49,62,0.35);
+    display:none; align-items:flex-end; justify-content:center; z-index: 50;
+  }
+  .overlay.show{ display:flex; }
+  .sheet{
+    background: var(--card); width:100%; max-width: 480px;
+    border-radius: 18px 18px 0 0; padding: 22px 22px calc(22px + env(safe-area-inset-bottom));
+  }
+  .sheet h2{ font-family: Georgia, serif; font-size: 19px; margin-bottom: 16px; }
+  .field{ margin-bottom: 14px; }
+  .field label{ display:block; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 5px; }
+  .field input{
+    width:100%; padding: 12px 14px; border: 1px solid var(--paper-line);
+    border-radius: 8px; font-size: 16px; background: var(--paper); color: var(--ink);
+  }
+  .field input:focus{ outline: none; border-color: var(--rust-soft); }
+  .sheet-actions{ display:flex; gap: 10px; margin-top: 18px; }
+  .sheet-actions button{
+    flex:1; padding: 13px; border-radius: 8px; font-size: 15px; font-weight: 600; border:none; cursor:pointer;
+  }
+  .btn-cancel{ background: var(--paper); color: var(--ink-soft); border: 1px solid var(--paper-line) !important; }
+  .btn-save{ background: var(--rust); color: #fff; }
+  .btn-save:active{ background:#7f332a; }
+  .btn-cancel:active{ background: var(--paper-line); }
 
-/* medidor com a marca do limite (70%) */
-.medidor{position:relative;height:10px;border-radius:5px;margin:4px 4px 6px;border:1px solid #ffffff80;
-  background:linear-gradient(90deg,#2e9e5b80 var(--lim,70%),#d98a1b80 var(--lim,70%))}
-.medidor .marca{position:absolute;left:var(--lim,70%);top:-4px;bottom:-4px;width:2px;background:var(--branco)}
-.medidor .marca b{position:absolute;top:18px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:500;color:var(--branco)}
-.medidor .ponto{position:absolute;top:50%;width:18px;height:18px;border-radius:50%;background:var(--verde);
-  border:3px solid #ffffff;box-shadow:0 1px 4px #00000066;transform:translate(-50%,-50%);transition:left .25s}
-.medidor.gas .ponto{background:var(--laranja)}
-.espaco-medidor{margin-bottom:18px}
-/* base do cálculo (entre o resultado e o medidor) */
-.base{font-size:13px;text-align:center;opacity:.95;margin-bottom:16px}
-.frase-final{text-align:left;font-size:16px;font-weight:600}
+  .confirm-box{ text-align:center; }
+  .confirm-box p{ font-size: 14.5px; color: var(--ink); margin-bottom: 18px; line-height:1.5; }
 
-/* ===== BOTÕES (menu) ===== */
-.btn{width:100%;background:var(--verde);color:#ffffff;border-radius:10px;padding:14px;font-size:17px;font-weight:600;margin-top:14px}
-.btn:active{background:var(--verde-escuro)}
-.btn-sec{width:100%;background:#ffffff;color:var(--verde-escuro);border:1px solid var(--borda);border-radius:10px;padding:12px;font-size:16px;margin-top:10px}
-.btn-sec:active{background:var(--verde-claro)}
-.erro{color:var(--erro);font-size:13px;min-height:18px;margin-top:8px}
-/* mensagem de "salvo" */
-.ok{color:var(--verde-escuro);font-size:14px;font-weight:600;margin-top:8px}
+  /* menu de ações (editar/excluir) — bottom sheet, não sofre corte visual */
+  .action-list{ display:flex; flex-direction:column; gap: 8px; }
+  .action-btn{
+    width:100%; padding: 14px; border-radius: 8px; font-size: 15px; font-weight: 600;
+    border: 1px solid var(--paper-line); background: var(--paper); color: var(--ink); cursor:pointer;
+  }
+  .action-btn:active{ background: var(--paper-line); }
+  .action-btn.danger{ color: var(--rust); border-color: var(--rust-soft); }
+  .action-btn.cancel{ border:none; background:none; color: var(--ink-soft); margin-top: 4px; }
+  #backupOverlay .action-btn{ text-align:left; }
 
-/* ===== MENU: painel branco que sobe de baixo ===== */
-.overlay{position:fixed;inset:0;background:#00000066;z-index:10;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
-.overlay.aberto{opacity:1;visibility:visible}
-.painel{position:absolute;left:0;right:0;bottom:0;margin:0 auto;max-width:460px;max-height:86%;display:flex;flex-direction:column;
-  background:#ffffff;border-radius:20px 20px 0 0;transform:translateY(100%);transition:transform .25s}
-.overlay.aberto .painel{transform:translateY(0)}
-.arraste{padding:10px 0 4px;touch-action:none;cursor:grab}
-.arraste i{display:block;width:40px;height:4px;border-radius:2px;background:var(--borda);margin:0 auto}
-.painel-topo{display:flex;align-items:center;gap:8px;padding:4px 12px 8px;min-height:44px}
-.painel-topo h2{font-size:18px;font-weight:700;flex:1}
-.painel-topo.aba h2{text-align:center}
-.fechar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--suave);flex-shrink:0}
-.fechar:active{background:var(--verde-claro)}
-/* exemplos dentro dos campos do menu: cinza claro e apagado, para não parecerem preenchidos */
-.painel input::placeholder{color:#c2ccc6;opacity:1}
-.voltar{color:var(--verde-escuro);font-size:16px;padding:8px}
-.painel-corpo{overflow-y:auto;padding:0 20px calc(20px + env(safe-area-inset-bottom,0px))}
+  .how-to p{
+    font-size: 13.5px; line-height:1.6; color: var(--ink); margin-bottom: 14px;
+  }
+  .how-to p b{ color: var(--ink); }
+  .how-to-aviso{
+    background: var(--paper); border: 1px solid var(--paper-line);
+    border-radius: 8px; padding: 12px 14px; color: var(--ink-soft) !important;
+  }
 
-/* lista do menu */
-.item{width:100%;display:flex;align-items:center;justify-content:space-between;padding:16px 4px;border-bottom:1px solid var(--borda);font-size:17px;text-align:left}
-.item:last-child{border-bottom:0}
-.item span{color:var(--suave);font-size:22px}
-.item:active{background:var(--verde-claro)}
+  .toast{
+    position:fixed; bottom: 96px; left:50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--paper); padding: 12px 20px; border-radius: 8px;
+    font-size: 14px; opacity:0; pointer-events:none; transition: opacity .25s, transform .25s;
+    z-index: 60; white-space:nowrap;
+  }
+  .toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
 
-/* abas internas */
-.texto{width:100%;border:1px solid var(--borda);border-radius:10px;padding:12px 14px;font:inherit;font-size:17px;color:var(--texto);background:#ffffff}
-.texto:focus{border-color:var(--verde);outline:0}
-.id{color:var(--suave);font-size:14px;margin-top:14px}
-.id b{color:var(--texto);font-weight:600;letter-spacing:.5px}
-.previa{height:150px;border-radius:12px;border:1px solid var(--borda);background:center/cover no-repeat;margin-top:4px}
-.uso h3{font-size:16px;margin:18px 0 6px}
-.uso h3:first-child{margin-top:4px}
-.uso p{font-size:15px;line-height:1.5;color:var(--texto)}
-.uso p+p{margin-top:8px}
-.subtitulo{font-size:18px;font-weight:600;margin-top:12px}
-.sem-internet{margin-top:6px}
-/* ===== CONSUMO MENSAL ===== */
-.mes-nav{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px}
-.mes-nav button{font-size:24px;color:var(--suave);width:44px;height:44px;border-radius:50%}
-.mes-nav button:active{background:var(--verde-claro)}
-.mes-nav b{min-width:150px;text-align:center;font-size:17px}
-.abas{display:flex;gap:8px;margin-bottom:12px}
-.aba{flex:1;padding:10px;border-radius:10px;border:1px solid var(--borda);font-weight:600;color:var(--suave)}
-.aba.on{background:var(--verde);border-color:var(--verde);color:#fff}
-.resumo{display:flex;gap:10px;margin-bottom:4px}
-.resumo div{flex:1;background:var(--verde-claro);border-radius:10px;padding:10px;text-align:center}
-.resumo small{display:block;font-size:12px;color:var(--suave)}
-.resumo b{font-size:17px;color:var(--verde-escuro)}
-.lin{display:flex;width:100%;padding:12px 4px;border-bottom:1px solid var(--borda);font-size:15px;text-align:left}
-.lin span{flex:1}.lin span+span{text-align:right}
-.lin.cab{font-size:12px;font-weight:600;color:var(--suave);padding:6px 4px;margin-top:10px}
-.vaz{text-align:center;color:var(--suave);font-size:14px;padding:22px 0}
-.apagar{display:block;margin:18px auto 0;font-size:13px;color:var(--suave);text-decoration:underline}
-.modal{position:fixed;inset:0;background:#00000080;z-index:20;display:none;align-items:center;justify-content:center;padding:20px}
-.modal.aberto{display:flex}
-.caixa{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:380px;color:var(--texto);text-shadow:none}
-.caixa h3{font-size:18px;margin-bottom:10px}
-.caixa p{font-size:14px;line-height:1.5;color:var(--suave)}
-.toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:var(--verde-escuro);color:#fff;padding:10px 18px;border-radius:10px;font-size:14px;z-index:30;opacity:0;pointer-events:none;transition:opacity .2s}
-.toast.on{opacity:1}
-.lin.man span:nth-child(1){flex:0 0 34px;text-align:left}
-.lin.man span:nth-child(2){flex:0 0 96px;text-align:left}
-.lin.man span:nth-child(3){flex:1;text-align:left;padding-right:6px;word-break:break-word}
-.lin.man span:nth-child(4){flex:0 0 88px;text-align:right}
-.lin.man{font-size:14px}
-.item.dest{box-shadow:inset 4px 0 0 var(--verde);padding-left:16px}
+  .cal-year-nav{
+    display:flex; align-items:center; justify-content:center;
+    gap: 18px; margin-bottom: 16px;
+  }
+  .cal-year-nav button{
+    background:none; border:none; font-size: 18px; color: var(--ink-soft);
+    width: 32px; height: 32px; border-radius: 8px; cursor:pointer;
+  }
+  .cal-year-nav button:active{ background: var(--paper-line); }
+  .cal-year-label{
+    font-family: Georgia, "Source Serif 4", serif; font-size: 17px; min-width: 160px;
+    text-align:center; text-transform: capitalize;
+  }
+  .cal-weekdays{
+    display:grid; grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 6px;
+  }
+  .cal-weekdays span{
+    text-align:center; font-size: 11px; color: var(--ink-soft); font-weight:600;
+  }
+  .cal-days{
+    display:grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+  }
+  .cal-day{
+    aspect-ratio: 1; display:flex; align-items:center; justify-content:center;
+    border-radius: 8px; font-size: 13.5px; color: var(--ink);
+  }
+  .cal-day.fora{ color: var(--paper-line); }
+  .cal-day.hoje{ background: var(--ink); color: var(--paper); font-weight:600; }
+
 </style>
 </head>
 <body>
 
-<div id="fundo" class="verde"></div>
-<div id="veu"></div>
+<div class="app">
+  <header>
+    <button class="calendar-btn" id="calendarBtn" aria-label="Ver calendário">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+      </svg>
+    </button>
+    <button class="gear-btn" id="gearBtn" aria-label="Configurações">⚙</button>
+    <div class="brand">Controle de Gastos</div>
+    <div class="brand-sub">Seus gastos, mês a mês</div>
+    <div class="offline-badge">App funciona sem internet</div>
+  </header>
 
-<!-- ===== TELA INICIAL ===== -->
-<main class="conteudo">
+  <div class="profile-block" id="profileArea"></div>
 
-  <!-- 1 a 3: título, linha do perfil + engrenagem, frase -->
-  <section>
-    <h1>
-      <svg class="icone-bomba" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/><path d="M3 21h12"/><path d="M4 9.5h10"/><path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 4 0V9.8a2 2 0 0 0-.6-1.4L18.5 5"/></svg>
-      Meu consumo
-    </h1>
-    <div class="linha">
-      <button id="btnLinhaPerfil" class="perfil-btn" aria-label="Abrir perfil">
-        <span id="avTopo" class="avatar peq oculto"></span>
-        <span id="dadosTopo" class="dados oculto"><b id="nomeTopo"></b><small id="idTopo"></small></span>
-        <span id="fraseTopo" class="frase">Preencha seu perfil</span>
-      </button>
-      <button id="btnMenu" class="engrenagem" aria-label="Abrir menu">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
-      </button>
+  <div class="month-nav">
+    <button id="prevMonth" aria-label="Mês anterior">‹</button>
+    <div class="month-label" id="monthLabel">Setembro 2026</div>
+    <button id="nextMonth" aria-label="Próximo mês">›</button>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tabGeral">Geral</button>
+    <button class="tab-btn" id="tabCartao">Cartão</button>
+  </div>
+
+  <div id="balanceArea"></div>
+
+  <div class="list-wrap">
+    <div class="list-card" id="listCard"></div>
+  </div>
+</div>
+
+<div class="fab-bar">
+  <button class="fab" id="openAdd">+ Novo gasto</button>
+</div>
+
+<!-- overlay: adicionar/editar gasto -->
+<div class="overlay" id="formOverlay">
+  <div class="sheet">
+    <h2 id="formTitle">Novo gasto</h2>
+    <div class="field">
+      <label for="inputDesc">Local da despesa</label>
+      <input type="text" id="inputDesc" placeholder="Ex: Supermercado" maxlength="60">
     </div>
-    <p class="subtitulo">Álcool ou Gasolina</p>
-    <!-- ===== FRASE DO TOPO (abaixo do perfil): troque o texto da linha abaixo ===== -->
-    <p class="sem-internet">App funciona sem internet</p>
-    <!-- ===== FIM DA FRASE DO TOPO ===== -->
-  </section>
-
-  <!-- 4 e 5: preços -->
-  <section>
-    <div class="grupo">
-      <label for="alc">Preço do álcool (litro)</label>
-      <div class="campo"><span>R$</span><input id="alc" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
+    <div class="field">
+      <label for="inputValor">Valor (R$)</label>
+      <input type="number" id="inputValor" placeholder="0,00" step="0.01" min="0" inputmode="decimal">
     </div>
-    <div class="grupo">
-      <label for="gas">Preço da gasolina (litro)</label>
-      <div class="campo"><span>R$</span><input id="gas" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
-    </div>
-  </section>
-
-  <!-- 6: resultado -->
-  <section id="res" class="res vazio">
-    <div id="resT">Digite os dois preços</div>
-    <div id="resP"></div>
-    <div id="resS"></div>
-  </section>
-
-  <!-- 7 e 8: medidor e frase do final -->
-  <section>
-    <p id="base" class="base oculto"></p>
-    <div id="medidor" class="medidor oculto">
-      <div class="marca"><b id="marcaTxt">70%</b></div>
-      <div class="ponto" id="ponto"></div>
-    </div>
-    <div class="espaco-medidor"></div>
-
-    <!-- ===== FRASE DO FINAL (abaixo do medidor): troque o texto da linha abaixo ===== -->
-    <p class="frase-final">Mais que cálculo: o App Meu Consumo organiza seus abastecimentos e a manutenção do carro, tudo no seu celular.</p>
-    <!-- ===== FIM DA FRASE DO FINAL ===== -->
-  </section>
-</main>
-
-<!-- ===== MENU (painel que sobe de baixo) ===== -->
-<div id="overlay" class="overlay">
-  <div id="painel" class="painel" role="dialog" aria-modal="true">
-    <div id="arraste" class="arraste"><i></i></div>
-    <div id="painelTopo" class="painel-topo">
-      <button id="btnVoltar" class="voltar oculto">‹ Voltar</button>
-      <h2 id="painelTitulo">Menu</h2>
-      <button id="btnFechar" class="fechar" aria-label="Fechar menu">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
-    </div>
-    <div class="painel-corpo">
-
-      <!-- lista -->
-      <div id="vLista" class="vista">
-        <button class="item dest" data-ir="consumo">Consumo mensal <span>›</span></button>
-        <button class="item dest" data-ir="manutencao">Manutenção <span>›</span></button>
-        <button class="item" data-ir="uso">Como usar <span>›</span></button>
-        <button class="item" data-ir="perfil">Perfil <span>›</span></button>
-        <button class="item" data-ir="carro">Meu carro <span>›</span></button>
-        <button class="item" data-ir="fundo">Imagem de fundo <span>›</span></button>
-        <button class="item" data-ir="backup">Backup <span>›</span></button>
-        <button class="item" data-ir="enviar">Enviar app <span>›</span></button>
-      </div>
-
-      <!-- Consumo mensal -->
-      <div id="vConsumo" class="vista oculto">
-        <div class="mes-nav"><button id="mPrev" aria-label="Mês anterior">‹</button><b id="mLabel"></b><button id="mNext" aria-label="Próximo mês">›</button></div>
-        <div class="abas"><button id="aAlc" class="aba on">Álcool</button><button id="aGas" class="aba">Gasolina</button></div>
-        <div class="resumo"><div><small>Consumo litros</small><b id="rL">0 L</b></div><div><small>Valor total</small><b id="rV">R$ 0,00</b></div></div>
-        <button id="bAdd" class="btn">+ Adicionar consumo</button>
-        <button id="bShare" class="btn-sec">Compartilhar</button>
-        <div class="lin cab"><span>Data</span><span>Litros</span><span>Valor</span></div>
-        <div id="lista"></div>
-        <button id="bApagar" class="apagar">Apagar meses antigos</button>
-      </div>
-
-      <!-- Backup -->
-      <div id="vBackup" class="vista uso oculto">
-        <h3>Para que serve</h3>
-        <p>Guarda uma cópia dos seus dados: nome, avatar, Meu carro e todos os registros de consumo. Trocou de celular ou limpou os dados do app? Importe o arquivo e tudo volta.</p>
-        <h3>Exportar</h3>
-        <p>Gera um arquivo .json com a cópia. Guarde em lugar seguro, de preferência no Google Drive.</p>
-        <button id="btnExportar" class="btn-sec">Exportar backup</button>
-        <h3>Importar</h3>
-        <p>Escolha o arquivo .json salvo antes. Atenção: isso substitui os dados atuais do app.</p>
-        <button id="btnImportar" class="btn-sec">Importar backup</button>
-        <h3>Importante</h3>
-        <p>O app só encontra o arquivo se ele estiver na pasta Downloads ou no Google Drive. Se você recebeu o arquivo pelo WhatsApp (de outro celular, por exemplo), mova-o para Downloads ou, de preferência, para o Google Drive antes de importar.</p>
-      </div>
-
-      <!-- Manutenção -->
-      <div id="vManut" class="vista oculto">
-        <div class="resumo"><div><small>Total gasto em manutenção</small><b id="mTot">R$ 0,00</b></div></div>
-        <button id="mAdd" class="btn">+ Adicionar serviço</button>
-        <button id="mShare" class="btn-sec">Compartilhar</button>
-        <div class="lin cab man"><span>Nº</span><span>Data</span><span>Serviço</span><span>Valor</span></div>
-        <div id="mLista"></div>
-      </div>
-
-      <!-- Enviar app -->
-      <div id="vEnviar" class="vista uso oculto">
-        <h3>Gratidão e partilha</h3>
-        <p>Se o App Meu consumo tem ajudado você a organizar os gastos com combustível, mês a mês, que tal dar essa mesma chance a quem você gosta?</p>
-        <p>Quem controla o que gasta, dorme mais tranquilo.</p>
-        <p>E no posto, o app ainda calcula na hora se compensa abastecer com álcool ou gasolina, ajudando você a economizar a cada abastecimento.</p>
-        <p>Envie o banner abaixo.</p>
-        <img id="bannerImg" alt="Banner do app Meu consumo" style="width:100%;border-radius:12px;margin-top:12px;border:1px solid var(--borda)">
-        <button id="btnBanner" class="btn">Enviar banner</button>
-      </div>
-
-      <!-- Perfil -->
-      <div id="vPerfil" class="vista oculto">
-        <div id="avPerfil" class="avatar grande"></div>
-        <button id="btnFoto" class="btn-sec">Alterar foto</button>
-        <button id="btnRemover" class="btn-sec oculto">Remover foto</button>
-        <label for="pNome" style="margin-top:14px">Nome</label>
-        <input id="pNome" class="texto" type="text" maxlength="30" placeholder="Seu nome" autocomplete="off">
-        <p class="id">ID: <b id="pId"></b></p>
-        <p id="erroPerfil" class="erro"></p>
-        <button id="btnSalvarPerfil" class="btn" style="margin-top:0">Salvar</button>
-      </div>
-
-      <!-- Meu carro -->
-      <div id="vCarro" class="vista oculto">
-        <div class="uso" style="margin-bottom:6px">
-          <h3>Para que serve</h3>
-          <p>Informe quantos km seu carro faz com 1 litro. Assim o app calcula pelo consumo real do seu carro, e o resultado fica mais exato. É opcional.</p>
-          <h3>Onde achar esse número</h3>
-          <p>No manual do carro, na tabela do Inmetro, ou medindo: encha o tanque, zere o hodômetro e, no próximo abastecimento, divida os km rodados pelos litros colocados.</p>
-        </div>
-        <label for="kmA">Álcool</label>
-        <div class="campo km"><input id="kmA" inputmode="decimal" placeholder="Ex: 8" autocomplete="off"><span>km/l</span></div>
-        <label for="kmG">Gasolina</label>
-        <div class="campo km"><input id="kmG" inputmode="decimal" placeholder="Ex: 12" autocomplete="off"><span>km/l</span></div>
-        <p id="erroCarro" class="erro"></p>
-        <p id="okCarro" class="ok oculto"></p>
-        <button id="btnSalvarCarro" class="btn" style="margin-top:0">Salvar</button>
-      </div>
-
-      <!-- Imagem de fundo -->
-      <div id="vFundo" class="vista oculto">
-        <div id="previa" class="previa verde"></div>
-        <button id="btnImagem" class="btn-sec">Alterar imagem</button>
-        <button id="btnPadrao" class="btn-sec">Restaurar padrão</button>
-        <p id="erroFundo" class="erro"></p>
-      </div>
-
-      <!-- Como usar -->
-      <div id="vUso" class="vista uso oculto">
-        <h3>Abasteça sempre pela opção mais barata</h3>
-        <p>Digite o preço do álcool e o da gasolina, e o app mostra na hora qual compensa. A regra: o álcool só vale a pena quando custa até 70% do preço da gasolina, porque rende cerca de 30% menos por litro.</p>
-        <p><b>Exemplo:</b> gasolina a R$ 6,00, limite do álcool R$ 4,20.</p>
-        <p>Álcool a R$ 4,00: compensa o álcool ✅<br>Álcool a R$ 4,50: compensa a gasolina ⛽</p>
-        <p>Escolher certo a cada abastecimento economiza ao longo do ano, sem fazer conta. Quer mais precisão? Em <b>Meu carro</b> (opcional), informe quantos km seu carro faz com 1 litro de cada combustível, e o app calcula com os números do seu carro.</p>
-
-        <h3>Consumo mensal: seus gastos com combustível organizados</h3>
-        <p>Registre cada abastecimento (litros e valor pago) e o app guarda a data sozinho. Álcool e Gasolina ficam em listas separadas, mês a mês, com o total de litros e o valor total no topo. Você vê quanto gastou, compara os meses e controla o orçamento do carro. Precisa mostrar para alguém? Toque em <b>Compartilhar</b> e o app gera uma imagem em A4, pronta para enviar ou imprimir.</p>
-        <p>Para corrigir ou apagar um registro, é só tocar nele: aparecem as opções <b>Editar</b> e <b>Excluir</b>.</p>
-        <p>No final da lista há a opção <b>Apagar meses antigos</b>, mas ela é totalmente opcional. Os registros ocupam muito pouco espaço, então você pode usar o app por anos sem se preocupar com armazenamento.</p>
-
-        <h3>Manutenção: o histórico do seu carro</h3>
-        <p>Anote cada serviço feito no carro, como troca de óleo, pneus e revisões, com a data, o nome do serviço e, se quiser, o valor. A lista mostra o mais recente no topo e soma o total gasto em manutenção. Toque num serviço para <b>Editar</b> ou <b>Excluir</b>, e use <b>Compartilhar</b> para gerar a imagem em A4.</p>
-
-        <h3>Deixe o app com a sua cara</h3>
-        <p>Em <b>Imagem de fundo</b>, troque o fundo por uma foto sua, da câmera ou da galeria, e volte ao original quando quiser. Em <b>Perfil</b>, coloque seu nome e avatar.</p>
-
-        <h3>Backup: seus registros protegidos</h3>
-        <p>Exporte um arquivo com seu nome, avatar, dados de Meu carro e todos os registros. Trocou de celular ou limpou os dados? Importe o arquivo e tudo volta. Se receber o arquivo pelo WhatsApp, mova para Downloads ou Google Drive antes de importar.</p>
-        <p><b>Dica:</b> faça um backup uma vez por mês. Assim seus registros ficam sempre protegidos.</p>
-
-        <h3>Funciona sem internet</h3>
-        <p>Tudo fica no seu aparelho. Pode abastecer em posto sem sinal ou na estrada, e o app funciona igual, sem gastar seu pacote de dados. Como nada vai para a internet, seus registros ficam só com você.</p>
-
-        <h3>Não tem propaganda</h3>
-        <p>Sem anúncios, sem vídeos, sem pop-ups. Você abre, vê o resultado e abastece. Tela limpa e rápida.</p>
-      </div>
-
+    <div class="sheet-actions">
+      <button class="btn-cancel" id="cancelForm">Cancelar</button>
+      <button class="btn-save" id="saveForm">Salvar</button>
     </div>
   </div>
 </div>
 
-<!-- Seletor de imagem do Android (câmera ou galeria): sem o atributo capture, o sistema pergunta qual usar -->
-<input id="inFoto" type="file" accept="image/*" hidden>
-<input id="inBackup" type="file" accept="application/json,.json" hidden>
-<div id="modal" class="modal"><div id="caixa" class="caixa"></div></div>
-<div id="toast" class="toast"></div>
+<!-- overlay: definir/editar saldo inicial do mês -->
+<div class="overlay" id="balanceOverlay">
+  <div class="sheet">
+    <h2>Saldo inicial do mês</h2>
+    <div class="field">
+      <label for="inputSaldo">Valor (R$)</label>
+      <input type="number" id="inputSaldo" placeholder="0,00" step="0.01" min="0" inputmode="decimal">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" id="cancelBalance">Cancelar</button>
+      <button class="btn-save" id="saveBalance">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- overlay: ações do gasto (editar/excluir) -->
+<div class="overlay" id="actionOverlay">
+  <div class="sheet">
+    <h2 id="actionTitle">Gasto</h2>
+    <div class="action-list">
+      <button class="action-btn" id="actionEdit">Editar</button>
+      <button class="action-btn danger" id="actionDelete">Excluir</button>
+      <button class="action-btn cancel" id="actionCancel">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- overlay: calendário do mês -->
+<div class="overlay" id="calendarOverlay">
+  <div class="sheet">
+    <div class="cal-year-nav">
+      <button id="calPrevMonth">‹</button>
+      <div class="cal-year-label" id="calYearLabel">Setembro 2026</div>
+      <button id="calNextMonth">›</button>
+    </div>
+    <div class="cal-weekdays">
+      <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+    </div>
+    <div class="cal-days" id="calDays"></div>
+  </div>
+</div>
+
+<!-- overlay: como usar -->
+<div class="overlay" id="comoUsarOverlay">
+  <div class="sheet" style="max-height:80vh; overflow-y:auto;">
+    <h2>Como usar</h2>
+    <div class="how-to">
+      <p><b>Abas Geral e Cartão</b><br>
+      Cada mês tem duas listas separadas: Geral (gastos do dia a dia) e Cartão (gastos no cartão). Cada uma tem seu próprio total, e o Cartão não entra no saldo/total da Geral.</p>
+
+      <p><b>Saldo restante</b><br>
+      Na aba Geral, defina um saldo inicial em Configurações → Editar saldo inicial. Ele é descontado automaticamente a cada gasto lançado no mês.</p>
+
+      <p><b>Funciona sem internet</b><br>
+      O app guarda tudo direto no seu aparelho — não envia nem salva nada na internet. Por isso funciona mesmo sem conexão, mas os dados ficam só nesse celular (por isso o backup é importante se trocar de aparelho).</p>
+
+      <p><b>Adicionar, editar e excluir</b><br>
+      Toque em "+ Novo gasto" para lançar. Toque num item da lista para editar ou excluir.</p>
+
+      <p><b>Calendário</b><br>
+      O ícone de calendário no topo mostra os dias do mês atual, só como referência visual.</p>
+
+      <p><b>Compartilhar registro</b><br>
+      Em Configurações, gera uma imagem com a lista do mês da aba aberta, pronta para enviar por WhatsApp ou outro app.</p>
+
+      <p><b>Backup — Exportar</b><br>
+      Em Configurações → Exportar backup, gera um arquivo .json com todos os seus dados (gastos, saldos, nome e ID). Guarde esse arquivo num lugar seguro, de preferência no Google Drive.</p>
+
+      <p><b>Backup — Importar</b><br>
+      Em Configurações → Importar backup, escolha o arquivo .json salvo anteriormente para restaurar todos os dados.</p>
+
+      <p class="how-to-aviso"><b>Atenção ao importar:</b><br>
+      o app só encontra o arquivo se ele estiver na pasta Downloads do celular ou no Google Drive. Se você recebeu o arquivo de backup pelo WhatsApp (de outro celular, por exemplo), primeiro salve/mova esse arquivo para a pasta Downloads ou, de preferência, para o Google Drive — só depois disso ele aparece na hora de importar.</p>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" id="fecharComoUsar" style="flex:1;">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- overlay: configurações -->
+<div class="overlay" id="backupOverlay">
+  <div class="sheet">
+    <h2>Configurações</h2>
+    <div class="action-list">
+      <button class="action-btn" id="btnComoUsar">Como usar</button>
+      <button class="action-btn" id="btnEditarSaldoConfig">Editar saldo inicial</button>
+      <button class="action-btn" id="btnCompartilharImagem">Compartilhar registro</button>
+      <button class="action-btn" id="btnExportar">Exportar backup (.json)</button>
+      <button class="action-btn" id="btnImportar">Importar backup (.json)</button>
+      <button class="action-btn cancel" id="btnFecharBackup">Fechar</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="fileImportar" accept="application/json,.json" style="display:none">
+
+<!-- overlay: confirmar exclusão -->
+<div class="overlay" id="confirmOverlay">
+  <div class="sheet confirm-box">
+    <h2>Excluir gasto?</h2>
+    <p>Essa ação não pode ser desfeita.</p>
+    <div class="sheet-actions">
+      <button class="btn-cancel" id="cancelDelete">Cancelar</button>
+      <button class="btn-save" id="confirmDelete">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
-/* MEU CONSUMO | VERSÃO 13 */
+// ---------- IndexedDB ----------
+// ============================================================
+// LOGO (opcional) — COLE AQUI O CÓDIGO BASE64 DA LOGO
+// Formato completo: "data:image/png;base64,XXXXXXXX..."
+// Enquanto ficar vazia (""), a imagem compartilhada usa um
+// símbolo padrão ("CG") no lugar da logo.
+// ============================================================
+const LOGO_BASE64 = "";
 
-/* ===== IMAGEM DE FUNDO PADRÃO =====
-   Cole entre as aspas o código base64 da imagem padrão.
-   Exemplo: var FUNDO_PADRAO = 'data:image/jpeg;base64,/9j/4AAQ...';
-   Enquanto estiver vazio, o app usa um fundo verde suave. */
-var FUNDO_PADRAO = '';
+let db;
+const DB_NAME = "livro-gastos-db";
+const STORE_GASTOS = "gastos";
+const STORE_SALDOS = "saldosMensais";
+const STORE_PERFIL = "perfil";
 
-/* ===== DADOS (IndexedDB do aparelho, funciona sem internet) ===== */
-var K_PERFIL = 'perfil', K_CARRO = 'carro', K_FUNDO = 'fundo';
-var db, cache = {};
-function ler(k){ return cache[k] || null; }
-function gravar(k, v){ cache[k] = v; try{ db.transaction('kv','readwrite').objectStore('kv').put(v, k); return true; }catch(e){ return false; } }
-function apagar(k){ delete cache[k]; try{ db.transaction('kv','readwrite').objectStore('kv').delete(k); }catch(e){} }
+const dbRequest = indexedDB.open(DB_NAME, 2);
 
-var $ = function(id){ return document.getElementById(id); };
-var perfil = { nome:'', id:'', foto:'' }, carro = { a:0, g:0 }, fundoUser = '';
-var alvo = 'perfil', draftFoto = '';
-
-/* ID único: data (AAAAMMDD) + 4 caracteres aleatórios. Ex.: 20261029d4FM */
-function gerarId(){
-  var d = new Date();
-  var data = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
-  var letras = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789', s = '';
-  for(var i=0;i<4;i++) s += letras.charAt(Math.floor(Math.random()*letras.length));
-  return data + s;
-}
-
-/* ===== AVATAR: foto ou inicial do nome ===== */
-function pintar(el, nome, foto){
-  if(foto){ el.style.backgroundImage = 'url("' + foto + '")'; el.textContent = ''; }
-  else{ el.style.backgroundImage = ''; var n = (nome || '').trim(); el.textContent = n ? n.charAt(0).toUpperCase() : '+'; }
-}
-
-/* ===== LINHA DO PERFIL NA TELA INICIAL ===== */
-function renderTopo(){
-  var ok = !!perfil.nome;
-  $('fraseTopo').classList.toggle('oculto', ok);
-  $('avTopo').classList.toggle('oculto', !ok);
-  $('dadosTopo').classList.toggle('oculto', !ok);
-  if(ok){ pintar($('avTopo'), perfil.nome, perfil.foto); $('nomeTopo').textContent = perfil.nome; $('idTopo').textContent = 'ID: ' + perfil.id; }
-}
-
-/* ===== IMAGEM DE FUNDO ===== */
-function aplicarFundo(){
-  var url = fundoUser || FUNDO_PADRAO;
-  [$('fundo'), $('previa')].forEach(function(el){
-    el.style.backgroundImage = url ? 'url("' + url + '")' : '';
-    el.classList.toggle('verde', !url);
-  });
-}
-
-/* ===== CALCULADORA ===== */
-function num(v){ return parseFloat(String(v).replace(',', '.')); }
-function fmt(n){ return n.toFixed(1).replace('.', ','); }
-function km(n){ return String(n).replace('.', ','); }
-function temCarro(){ return carro.a > 0 && carro.g > 0; }
-/* limite: 70% (regra) ou o ponto de equilíbrio do carro, se os km/l estiverem preenchidos */
-function limite(){ return (carro.a > 0 && carro.g > 0) ? carro.a / carro.g * 100 : 70; }
-function calcular(){
-  var a = num($('alc').value), g = num($('gas').value), res = $('res'), med = $('medidor');
-  if(!(a > 0 && g > 0)){
-    res.className = 'res vazio'; $('resT').textContent = 'Digite os dois preços';
-    $('resP').textContent = ''; $('resS').textContent = ''; med.classList.add('oculto'); $('base').classList.add('oculto'); return;
+dbRequest.onupgradeneeded = (e) => {
+  const database = e.target.result;
+  if (!database.objectStoreNames.contains(STORE_GASTOS)) {
+    const store = database.createObjectStore(STORE_GASTOS, { keyPath: "id", autoIncrement: true });
+    store.createIndex("anoMes", ["ano", "mes"], { unique: false });
   }
-  var p = a / g * 100, lim = limite(), alcool = p <= lim;
-  var pos = Math.min(95, Math.max(5, lim));
-  res.className = 'res ' + (alcool ? 'alcool' : 'gasolina');
-  $('resT').textContent = alcool ? 'Compensa álcool' : 'Compensa gasolina';
-  $('resP').textContent = fmt(p) + '%';
-  $('resS').textContent = 'O álcool custa ' + fmt(p) + '% do preço da gasolina';
-  $('base').textContent = temCarro() ? 'Base: seu carro (' + km(carro.a) + ' e ' + km(carro.g) + ' km/l)' : 'Base: regra dos 70%';
-  $('base').classList.remove('oculto');
-  med.classList.remove('oculto'); med.classList.toggle('gas', !alcool);
-  med.style.setProperty('--lim', pos + '%');
-  $('marcaTxt').textContent = Math.round(lim) + '%';
-  $('ponto').style.left = Math.min(p, 100) + '%';
-}
-$('alc').oninput = calcular;
-$('gas').oninput = calcular;
-
-/* ===== MENU: abrir, fechar e navegar ===== */
-var TITULOS = { lista:'Menu', perfil:'Perfil', carro:'Meu carro', fundo:'Imagem de fundo', uso:'Como usar', consumo:'Consumo mensal', backup:'Backup', enviar:'Enviar app', manutencao:'Manutenção' };
-var VISTAS = { lista:'vLista', perfil:'vPerfil', carro:'vCarro', fundo:'vFundo', uso:'vUso', consumo:'vConsumo', backup:'vBackup', enviar:'vEnviar', manutencao:'vManut' };
-function mostrar(v){
-  Object.keys(VISTAS).forEach(function(k){ $(VISTAS[k]).classList.toggle('oculto', k !== v); });
-  $('painelTitulo').textContent = TITULOS[v];
-  $('btnVoltar').classList.toggle('oculto', v === 'lista');
-  $('painelTopo').classList.toggle('aba', v !== 'lista');
-  $('erroPerfil').textContent = $('erroCarro').textContent = $('erroFundo').textContent = '';
-  $('okCarro').classList.add('oculto');
-  if(v === 'perfil'){ draftFoto = perfil.foto; $('pNome').value = perfil.nome; atualizarPerfilTab(); }
-  if(v === 'carro'){ $('kmA').value = carro.a ? km(carro.a) : ''; $('kmG').value = carro.g ? km(carro.g) : ''; statusCarro(); }
-  if(v === 'consumo') renderConsumo();
-  if(v === 'manutencao') renderManut();
-  if(v === 'enviar') bannerUrl(function(u){ $('bannerImg').src = u; });
-}
-function abrirMenu(v){ mostrar(v || 'lista'); $('overlay').classList.add('aberto'); }
-function fecharMenu(){ $('overlay').classList.remove('aberto'); }
-$('btnMenu').onclick = function(){ abrirMenu('lista'); };
-$('btnLinhaPerfil').onclick = function(){ abrirMenu('perfil'); };
-$('btnVoltar').onclick = function(){ mostrar('lista'); };
-$('btnFechar').onclick = fecharMenu;
-$('overlay').onclick = function(e){ if(e.target === this) fecharMenu(); };
-document.querySelectorAll('[data-ir]').forEach(function(b){ b.onclick = function(){ mostrar(b.dataset.ir); }; });
-
-/* arrastar o painel para baixo fecha o menu */
-(function(){
-  var y0 = null, painel = $('painel');
-  $('arraste').onpointerdown = function(e){ y0 = e.clientY; painel.style.transition = 'none'; this.setPointerCapture(e.pointerId); };
-  $('arraste').onpointermove = function(e){ if(y0 === null) return; var d = Math.max(0, e.clientY - y0); painel.style.transform = 'translateY(' + d + 'px)'; };
-  $('arraste').onpointerup = function(e){
-    if(y0 === null) return;
-    var d = e.clientY - y0; y0 = null;
-    painel.style.transition = ''; painel.style.transform = '';
-    if(d > 90) fecharMenu();
-  };
-})();
-
-/* ===== FOTO / IMAGEM (um seletor só, usado por Perfil e Fundo) ===== */
-function redimensionar(arq, max, quadrada, ok){
-  var r = new FileReader();
-  r.onload = function(){
-    var img = new Image();
-    img.onload = function(){
-      var c = document.createElement('canvas'), x = c.getContext('2d');
-      if(quadrada){ var s = Math.min(img.width, img.height); c.width = c.height = max; x.drawImage(img, (img.width-s)/2, (img.height-s)/2, s, s, 0, 0, max, max); }
-      else{ var e = Math.min(1, max / Math.max(img.width, img.height)); c.width = Math.round(img.width*e); c.height = Math.round(img.height*e); x.drawImage(img, 0, 0, c.width, c.height); }
-      ok(c.toDataURL('image/jpeg', 0.8));
-    };
-    img.src = r.result;
-  };
-  r.readAsDataURL(arq);
-}
-$('btnFoto').onclick = function(){ alvo = 'perfil'; $('inFoto').click(); };
-$('btnImagem').onclick = function(){ alvo = 'fundo'; $('inFoto').click(); };
-$('inFoto').onchange = function(e){
-  var f = e.target.files[0]; e.target.value = '';
-  if(!f) return;
-  if(alvo === 'perfil'){ redimensionar(f, 256, true, function(d){ draftFoto = d; atualizarPerfilTab(); }); }
-  else{
-    redimensionar(f, 1280, false, function(d){
-      if(gravar(K_FUNDO, d)){ fundoUser = d; aplicarFundo(); $('erroFundo').textContent = ''; }
-      else{ $('erroFundo').textContent = 'Não foi possível guardar essa imagem. Tente uma menor.'; }
-    });
+  if (!database.objectStoreNames.contains(STORE_SALDOS)) {
+    database.createObjectStore(STORE_SALDOS, { keyPath: "chave" });
+  }
+  if (!database.objectStoreNames.contains(STORE_PERFIL)) {
+    database.createObjectStore(STORE_PERFIL, { keyPath: "chave" });
   }
 };
 
-/* ===== ABA PERFIL ===== */
-function atualizarPerfilTab(){
-  pintar($('avPerfil'), $('pNome').value, draftFoto);
-  $('btnRemover').classList.toggle('oculto', !draftFoto);
-  $('pId').textContent = perfil.id || 'gerado ao salvar';
-}
-$('pNome').oninput = atualizarPerfilTab;
-$('btnRemover').onclick = function(){ draftFoto = ''; atualizarPerfilTab(); };
-$('btnSalvarPerfil').onclick = function(){
-  var n = $('pNome').value.trim();
-  if(!n){ $('erroPerfil').textContent = 'Digite seu nome para salvar.'; return; }
-  var novo = { nome:n, id: perfil.id || gerarId(), foto: draftFoto };
-  if(!gravar(K_PERFIL, novo)){ $('erroPerfil').textContent = 'Não foi possível salvar o perfil.'; return; }
-  perfil = novo; renderTopo(); mostrar('lista');
-};
-
-/* ===== ABA MEU CARRO ===== */
-function statusCarro(){
-  var el = $('okCarro');
-  if(temCarro()){ el.textContent = '✓ Salvo: álcool ' + km(carro.a) + ' km/l · gasolina ' + km(carro.g) + ' km/l'; el.classList.remove('oculto'); }
-  else{ el.classList.add('oculto'); }
-}
-/* ao editar um campo, some a mensagem de salvo (há mudança ainda não salva) */
-['kmA','kmG'].forEach(function(id){ $(id).oninput = function(){ $('okCarro').classList.add('oculto'); $('erroCarro').textContent = ''; }; });
-$('btnSalvarCarro').onclick = function(){
-  var tA = $('kmA').value.trim(), tG = $('kmG').value.trim(), a = num(tA), g = num(tG), novo;
-  if(!tA && !tG){ novo = { a:0, g:0 }; }
-  else if(a > 0 && g > 0){ novo = { a:a, g:g }; }
-  else{ $('erroCarro').textContent = 'Preencha os dois campos com números maiores que zero, ou deixe os dois vazios.'; return; }
-  if(!gravar(K_CARRO, novo)){ $('erroCarro').textContent = 'Não foi possível salvar.'; return; }
-  carro = novo; calcular();
-  if(temCarro()){ statusCarro(); }
-  else{ $('okCarro').textContent = '✓ Salvo: sem consumo informado, o app usa a regra dos 70%'; $('okCarro').classList.remove('oculto'); }
-};
-
-/* ===== ABA IMAGEM DE FUNDO: restaurar padrão ===== */
-$('btnPadrao').onclick = function(){ apagar(K_FUNDO); fundoUser = ''; aplicarFundo(); $('erroFundo').textContent = ''; };
-
-/* ===== LOGO DO COMPARTILHAMENTO (opcional) =====
-   Cole entre as aspas o base64 da logo: 'data:image/png;base64,...'
-   Vazio = símbolo padrão "MC". */
-var LOGO_BASE64 = '';
-
-/* ===== CONSUMO MENSAL ===== */
-var MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-var hoje=new Date(), abaC='alcool', mesC=hoje.getMonth(), anoC=hoje.getFullYear(), consumos=[], itemSel=null;
-function brl(n){ return n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
-function lt(n){ return n.toLocaleString('pt-BR',{maximumFractionDigits:2}); }
-function dm(t){ return new Date(t).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}); }
-function nomeAba(){ return abaC==='alcool'?'Álcool':'Gasolina'; }
-function msg(t){ var e=$('toast'); e.textContent=t; e.classList.add('on'); setTimeout(function(){ e.classList.remove('on'); },2200); }
-function modal(h){ $('caixa').innerHTML=h; $('modal').classList.add('aberto'); }
-function fechaModal(){ $('modal').classList.remove('aberto'); }
-function carregar(cb){ var r=db.transaction('consumos').objectStore('consumos').getAll(); r.onsuccess=function(){ consumos=r.result||[]; cb(); }; }
-function doMes(){ return consumos.filter(function(c){ return c.tipo===abaC&&c.mes===mesC&&c.ano===anoC; }).sort(function(a,b){ return b.t-a.t; }); }
-function renderConsumo(){
-  carregar(function(){
-    $('mLabel').textContent=MESES[mesC]+' '+anoC;
-    $('aAlc').classList.toggle('on',abaC==='alcool'); $('aGas').classList.toggle('on',abaC==='gasolina');
-    var L=doMes(), tl=0, tv=0, h='';
-    L.forEach(function(c,i){ tl+=c.litros; tv+=c.valor; h+='<button class="lin" data-i="'+i+'"><span>'+dm(c.t)+'</span><span>'+lt(c.litros)+' L</span><span>'+brl(c.valor)+'</span></button>'; });
-    $('rL').textContent=lt(tl)+' L'; $('rV').textContent=brl(tv);
-    $('lista').innerHTML=h||'<p class="vaz">Nenhum registro neste mês.</p>';
-    document.querySelectorAll('#lista .lin').forEach(function(b){ b.onclick=function(){ acoes(L[b.dataset.i]); }; });
-  });
-}
-$('aAlc').onclick=function(){ abaC='alcool'; renderConsumo(); };
-$('aGas').onclick=function(){ abaC='gasolina'; renderConsumo(); };
-$('mPrev').onclick=function(){ mesC--; if(mesC<0){ mesC=11; anoC--; } renderConsumo(); };
-$('mNext').onclick=function(){ mesC++; if(mesC>11){ mesC=0; anoC++; } renderConsumo(); };
-$('modal').onclick=function(e){ if(e.target===this) fechaModal(); };
-
-function acoes(c){
-  itemSel=c;
-  modal('<h3>'+dm(c.t)+' · '+lt(c.litros)+' L · '+brl(c.valor)+'</h3><button class="btn-sec" id="xE">Editar</button><button class="btn-sec" id="xX" style="color:var(--erro)">Excluir</button><button class="btn-sec" id="xC">Cancelar</button>');
-  $('xC').onclick=fechaModal; $('xE').onclick=function(){ form(c); }; $('xX').onclick=confirmaExcluir;
-}
-function confirmaExcluir(){
-  modal('<h3>Excluir registro?</h3><p>Essa ação não pode ser desfeita.</p><button class="btn" id="yOk">Excluir</button><button class="btn-sec" id="yC">Cancelar</button>');
-  $('yC').onclick=fechaModal;
-  $('yOk').onclick=function(){ var tx=db.transaction('consumos','readwrite'); tx.objectStore('consumos').delete(itemSel.id); tx.oncomplete=function(){ fechaModal(); msg('Registro excluído'); renderConsumo(); }; };
-}
-function form(c){
-  modal('<h3>'+(c?'Editar consumo':'Novo consumo · '+nomeAba())+'</h3><label for="fL">Litros</label><div class="campo"><input id="fL" inputmode="decimal" placeholder="Ex: 30" autocomplete="off" value="'+(c?String(c.litros).replace('.',','):'')+'"><span>L</span></div><label for="fV">Valor pago</label><div class="campo"><span>R$</span><input id="fV" inputmode="decimal" placeholder="0,00" autocomplete="off" value="'+(c?String(c.valor).replace('.',','):'')+'"></div><p id="fE" class="erro"></p><button class="btn" id="fOk" style="margin-top:0">Salvar</button><button class="btn-sec" id="fC">Cancelar</button>');
-  $('fC').onclick=fechaModal;
-  $('fOk').onclick=function(){
-    var l=num($('fL').value), v=num($('fV').value);
-    if(!(l>0&&v>0)){ $('fE').textContent='Preencha litros e valor com números maiores que zero.'; return; }
-    var tx=db.transaction('consumos','readwrite'), st=tx.objectStore('consumos');
-    if(c){ c.litros=l; c.valor=v; st.put(c); }
-    else{ var d=new Date(); st.add({tipo:abaC,litros:l,valor:v,t:d.getTime(),mes:d.getMonth(),ano:d.getFullYear()}); mesC=d.getMonth(); anoC=d.getFullYear(); }
-    tx.oncomplete=function(){ fechaModal(); msg('Salvo'); renderConsumo(); };
-  };
-  setTimeout(function(){ $('fL').focus(); },100);
-}
-$('bAdd').onclick=function(){ form(null); };
-
-/* apagar meses antigos (Álcool e Gasolina juntos) */
-$('bApagar').onclick=function(){ carregar(function(){
-  var ks={}; consumos.forEach(function(c){ ks[c.ano*12+c.mes]=1; });
-  var ord=Object.keys(ks).map(Number).sort(function(a,b){ return a-b; });
-  if(ord.length<2){ msg('Não há meses antigos para apagar'); return; }
-  var op=''; ord.slice(1).forEach(function(k){ op+='<option value="'+k+'">'+MESES[k%12]+' '+Math.floor(k/12)+'</option>'; });
-  modal('<h3>Apagar meses antigos</h3><label for="sM">Apagar tudo antes de:</label><select id="sM" class="texto">'+op+'</select><p style="margin-top:10px">Apaga Álcool e Gasolina de todos os meses anteriores ao escolhido. Não dá para desfazer. Faça um backup antes (menu → Backup).</p><button class="btn" id="zOk">Apagar</button><button class="btn-sec" id="zC">Cancelar</button>');
-  $('zC').onclick=fechaModal;
-  $('zOk').onclick=function(){
-    var lim=Number($('sM').value), tx=db.transaction('consumos','readwrite'), st=tx.objectStore('consumos');
-    consumos.forEach(function(c){ if(c.ano*12+c.mes<lim) st.delete(c.id); });
-    tx.oncomplete=function(){ fechaModal(); msg('Meses antigos apagados'); renderConsumo(); };
-  };
-}); };
-
-/* ===== COMPARTILHAR: imagens A4 (várias páginas se a lista for grande) ===== */
-function dataHora(){ var d=new Date(); return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
-function logo(x,cx,cy,r){ return new Promise(function(ok){
-  function pad(){ x.fillStyle='#1f7a43'; x.beginPath(); x.arc(cx,cy,r,0,7); x.fill(); x.fillStyle='#fff'; x.font='700 '+Math.round(r*.8)+'px Georgia,serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText('MC',cx,cy+1); x.textAlign='left'; x.textBaseline='alphabetic'; ok(); }
-  if(!LOGO_BASE64){ pad(); return; }
-  var im=new Image(); im.onload=function(){ x.save(); x.beginPath(); x.arc(cx,cy,r,0,7); x.clip(); x.drawImage(im,cx-r,cy-r,2*r,2*r); x.restore(); ok(); }; im.onerror=pad; im.src=LOGO_BASE64;
-}); }
-function pagina(itens,o){ return new Promise(function(ok){
-  var W=794,H=1123,M=40,cv=document.createElement('canvas'); cv.width=W; cv.height=H; var x=cv.getContext('2d');
-  x.fillStyle='#fff'; x.fillRect(0,0,W,H);
-  x.fillStyle='#1f7a43'; x.font='700 28px system-ui,sans-serif'; x.fillText('Meu consumo',M,56);
-  x.fillStyle='#5d7165'; x.font='14px system-ui,sans-serif';
-  x.fillText((perfil.nome?perfil.nome+' · ID '+perfil.id+' · ':'')+dataHora(),M,80);
-  x.fillStyle='#1c2b21'; x.font='600 18px system-ui,sans-serif';
-  x.fillText(nomeAba()+' — '+MESES[mesC]+' '+anoC+(o.n>1?' (página '+o.p+' de '+o.n+')':''),M,118);
-  var y=160, cL=W/2+80;
-  x.font='600 12px system-ui,sans-serif'; x.fillStyle='#5d7165'; x.fillText('Data',M,y);
-  x.textAlign='right'; x.fillText('Litros',cL,y); x.fillText('Valor',W-M,y); x.textAlign='left';
-  x.strokeStyle='#d5e6da'; x.lineWidth=1; x.beginPath(); x.moveTo(M,y+10); x.lineTo(W-M,y+10); x.stroke(); y+=10;
-  itens.forEach(function(c){
-    y+=34; x.fillStyle='#1c2b21'; x.font='14px system-ui,sans-serif'; x.fillText(dm(c.t),M,y-12);
-    x.textAlign='right'; x.fillText(lt(c.litros)+' L',cL,y-12); x.fillText(brl(c.valor),W-M,y-12); x.textAlign='left';
-    x.beginPath(); x.moveTo(M,y); x.lineTo(W-M,y); x.stroke();
-  });
-  if(o.ult){
-    y+=44; x.strokeStyle='#1f7a43'; x.lineWidth=2; x.beginPath(); x.moveTo(M,y-30); x.lineTo(W-M,y-30); x.stroke();
-    x.fillStyle='#1c2b21'; x.font='600 16px system-ui,sans-serif'; x.fillText('Abastecimentos',M,y);
-    x.textAlign='right'; x.fillText('Consumo litros',cL,y); x.fillText('Valor total',W-M,y);
-    x.fillStyle='#1f7a43'; x.font='700 20px system-ui,sans-serif'; x.textAlign='left'; x.fillText(String(o.q),M,y+28);
-    x.textAlign='right'; x.fillText(lt(o.tl)+' L',cL,y+28); x.fillText(brl(o.tv),W-M,y+28); x.textAlign='left';
-  }
-  var fim=function(){ cv.toBlob(ok,'image/png'); };
-  if(o.p===1) logo(x,W-M-28,52,28).then(fim); else fim();
-}); }
-function baixar(f){ var u=URL.createObjectURL(f), a=document.createElement('a'); a.href=u; a.download=f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },1000); }
-$('bShare').onclick=async function(){
-  await new Promise(function(r){ carregar(r); });
-  var L=doMes().reverse(), tl=0, tv=0; L.forEach(function(c){ tl+=c.litros; tv+=c.valor; });
-  var por=25, ult=22, pgs=[], r=L.slice();
-  while(r.length>ult) pgs.push(r.splice(0,por));
-  pgs.push(r);
-  var arqs=[], base='meu-consumo-'+abaC+'-'+MESES[mesC].toLowerCase()+'-'+anoC;
-  for(var i=0;i<pgs.length;i++){
-    var b=await pagina(pgs[i],{p:i+1,n:pgs.length,ult:i===pgs.length-1,tl:tl,tv:tv,q:L.length});
-    arqs.push(new File([b],base+(pgs.length>1?'-pagina-'+(i+1):'')+'.png',{type:'image/png'}));
-  }
-  if(navigator.canShare&&navigator.canShare({files:arqs})){ try{ await navigator.share({files:arqs,title:'Meu consumo'}); return; }catch(e){ if(e.name==='AbortError') return; } }
-  arqs.forEach(baixar); msg(arqs.length>1?'Imagens salvas':'Imagem salva');
-};
-
-/* ===== BACKUP: exportar e importar (.json) ===== */
-$('btnExportar').onclick=async function(){
-  await new Promise(function(r){ carregar(r); }); await new Promise(function(r){ carregarM(r); });
-  var d=new Date(), dd=String(d.getDate()).padStart(2,'0')+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+d.getFullYear();
-  var f=new File([JSON.stringify({app:'meu-consumo',versao:2,perfil:perfil,carro:carro,consumos:consumos,manutencao:manut})],dd+'-meu-consumo-backup.json',{type:'application/json'});
-  if(navigator.canShare&&navigator.canShare({files:[f]})){ try{ await navigator.share({files:[f]}); return; }catch(e){ if(e.name==='AbortError') return; } }
-  baixar(f); msg('Backup exportado');
-};
-$('btnImportar').onclick=function(){ $('inBackup').click(); };
-$('inBackup').onchange=function(e){
-  var f=e.target.files[0]; e.target.value=''; if(!f) return;
-  f.text().then(function(t){
-    var d=JSON.parse(t); if(d.app!=='meu-consumo') throw 0;
-    if(d.perfil&&d.perfil.nome){ perfil=d.perfil; gravar(K_PERFIL,perfil); }
-    if(d.carro){ carro=d.carro; gravar(K_CARRO,carro); }
-    var tx=db.transaction(['consumos','manutencao'],'readwrite'), st=tx.objectStore('consumos'), sm=tx.objectStore('manutencao'); st.clear(); sm.clear();
-    (d.consumos||[]).forEach(function(c){ delete c.id; st.add(c); });
-    (d.manutencao||[]).forEach(function(c){ delete c.id; sm.add(c); });
-    tx.oncomplete=function(){ renderTopo(); calcular(); msg('Backup importado'); fecharMenu(); };
-  }).catch(function(){ msg('Arquivo inválido'); });
-};
-
-/* ===== MANUTENÇÃO ===== */
-var manut=[], mSel=null;
-function carregarM(cb){ var r=db.transaction('manutencao').objectStore('manutencao').getAll(); r.onsuccess=function(){ manut=(r.result||[]).sort(function(a,b){ return a.data<b.data?1:a.data>b.data?-1:b.id-a.id; }); cb(); }; }
-function dd(t){ var p=t.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
-function hojeISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-function renderManut(){ carregarM(function(){
-  var tot=0, h='';
-  manut.forEach(function(c,i){ if(c.valor) tot+=c.valor; h+='<button class="lin man" data-i="'+i+'"><span>'+(manut.length-i)+'</span><span>'+dd(c.data)+'</span><span>'+c.servico.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span><span>'+(c.valor?brl(c.valor):'')+'</span></button>'; });
-  $('mTot').textContent=brl(tot);
-  $('mLista').innerHTML=h||'<p class="vaz">Nenhum serviço registrado.</p>';
-  document.querySelectorAll('#mLista .lin').forEach(function(b){ b.onclick=function(){ mAcoes(manut[b.dataset.i]); }; });
-}); }
-function mAcoes(c){
-  mSel=c;
-  modal('<h3 id="xT"></h3><button class="btn-sec" id="xE">Editar</button><button class="btn-sec" id="xX" style="color:var(--erro)">Excluir</button><button class="btn-sec" id="xC">Cancelar</button>');
-  $('xT').textContent=dd(c.data)+' · '+c.servico;
-  $('xC').onclick=fechaModal; $('xE').onclick=function(){ mForm(c); };
-  $('xX').onclick=function(){
-    modal('<h3>Excluir serviço?</h3><p>Essa ação não pode ser desfeita.</p><button class="btn" id="yOk">Excluir</button><button class="btn-sec" id="yC">Cancelar</button>');
-    $('yC').onclick=fechaModal;
-    $('yOk').onclick=function(){ var tx=db.transaction('manutencao','readwrite'); tx.objectStore('manutencao').delete(mSel.id); tx.oncomplete=function(){ fechaModal(); msg('Serviço excluído'); renderManut(); }; };
-  };
-}
-function mForm(c){
-  modal('<h3>'+(c?'Editar serviço':'Novo serviço')+'</h3><label for="gD">Data</label><div class="campo"><input id="gD" type="date" style="font-size:20px"></div><label for="gS">Serviço</label><div class="campo"><input id="gS" maxlength="60" placeholder="Ex: Troca de óleo" autocomplete="off" style="font-size:20px"></div><label for="gV">Valor (opcional)</label><div class="campo"><span>R$</span><input id="gV" inputmode="decimal" placeholder="0,00" autocomplete="off"></div><p id="gE" class="erro"></p><button class="btn" id="gOk" style="margin-top:0">Salvar</button><button class="btn-sec" id="gC">Cancelar</button>');
-  $('gD').value=c?c.data:hojeISO(); $('gS').value=c?c.servico:''; $('gV').value=c&&c.valor?String(c.valor).replace('.',','):'';
-  $('gC').onclick=fechaModal;
-  $('gOk').onclick=function(){
-    var d=$('gD').value, s=$('gS').value.trim(), v=$('gV').value.trim()?num($('gV').value):null;
-    if(!d||!s){ $('gE').textContent='Preencha a data e o serviço.'; return; }
-    if(v!==null&&!(v>=0)){ $('gE').textContent='Valor inválido.'; return; }
-    var tx=db.transaction('manutencao','readwrite'), st=tx.objectStore('manutencao');
-    if(c){ c.data=d; c.servico=s; c.valor=v; st.put(c); } else st.add({data:d,servico:s,valor:v});
-    tx.oncomplete=function(){ fechaModal(); msg('Salvo'); renderManut(); };
-  };
-}
-$('mAdd').onclick=function(){ mForm(null); };
-function paginaM(itens,o){ return new Promise(function(ok){
-  var W=794,H=1123,M=40,cv=document.createElement('canvas'); cv.width=W; cv.height=H; var x=cv.getContext('2d');
-  x.fillStyle='#fff'; x.fillRect(0,0,W,H);
-  x.fillStyle='#1f7a43'; x.font='700 28px system-ui,sans-serif'; x.fillText('Meu consumo',M,56);
-  x.fillStyle='#5d7165'; x.font='14px system-ui,sans-serif'; x.fillText((perfil.nome?perfil.nome+' · ID '+perfil.id+' · ':'')+dataHora(),M,80);
-  x.fillStyle='#1c2b21'; x.font='600 18px system-ui,sans-serif'; x.fillText('Manutenção'+(o.n>1?' (página '+o.p+' de '+o.n+')':''),M,118);
-  var y=160, cD=M+44, cS=M+150, cV=W-M;
-  x.font='600 12px system-ui,sans-serif'; x.fillStyle='#5d7165'; x.fillText('Nº',M,y); x.fillText('Data',cD,y); x.fillText('Serviço',cS,y); x.textAlign='right'; x.fillText('Valor',cV,y); x.textAlign='left';
-  x.strokeStyle='#d5e6da'; x.lineWidth=1; x.beginPath(); x.moveTo(M,y+10); x.lineTo(W-M,y+10); x.stroke(); y+=10;
-  itens.forEach(function(c){
-    y+=34; x.fillStyle='#1c2b21'; x.font='14px system-ui,sans-serif'; x.fillText(String(c.n),M,y-12); x.fillText(dd(c.data),cD,y-12); x.fillText(c.servico.slice(0,34),cS,y-12);
-    x.textAlign='right'; x.fillText(c.valor?brl(c.valor):'',cV,y-12); x.textAlign='left'; x.beginPath(); x.moveTo(M,y); x.lineTo(W-M,y); x.stroke();
-  });
-  if(o.ult){
-    y+=44; x.strokeStyle='#1f7a43'; x.lineWidth=2; x.beginPath(); x.moveTo(M,y-30); x.lineTo(W-M,y-30); x.stroke();
-    x.fillStyle='#1c2b21'; x.font='600 16px system-ui,sans-serif'; x.fillText('Serviços',cD,y); x.textAlign='right'; x.fillText('Total gasto',cV,y);
-    x.fillStyle='#1f7a43'; x.font='700 20px system-ui,sans-serif'; x.textAlign='left'; x.fillText(String(o.q),cD,y+28); x.textAlign='right'; x.fillText(brl(o.tot),cV,y+28); x.textAlign='left';
-  }
-  var fim=function(){ cv.toBlob(ok,'image/png'); };
-  if(o.p===1) logo(x,W-M-28,52,28).then(fim); else fim();
-}); }
-$('mShare').onclick=async function(){
-  await new Promise(function(r){ carregarM(r); });
-  var tot=0, L=manut.map(function(c,i){ if(c.valor) tot+=c.valor; return {n:manut.length-i,data:c.data,servico:c.servico,valor:c.valor}; });
-  var por=25, ult=22, pgs=[], r=L.slice();
-  while(r.length>ult) pgs.push(r.splice(0,por));
-  pgs.push(r);
-  var arqs=[];
-  for(var i=0;i<pgs.length;i++){
-    var b=await paginaM(pgs[i],{p:i+1,n:pgs.length,ult:i===pgs.length-1,tot:tot,q:L.length});
-    arqs.push(new File([b],'meu-consumo-manutencao'+(pgs.length>1?'-pagina-'+(i+1):'')+'.png',{type:'image/png'}));
-  }
-  if(navigator.canShare&&navigator.canShare({files:arqs})){ try{ await navigator.share({files:arqs,title:'Meu consumo'}); return; }catch(e){ if(e.name==='AbortError') return; } }
-  arqs.forEach(baixar); msg(arqs.length>1?'Imagens salvas':'Imagem salva');
-};
-
-/* ===== BANNER DO APP (aba Enviar app) =====
-   Cole entre as aspas o base64 do banner real: 'data:image/png;base64,...'
-   Vazio = o app usa um banner provisório verde. */
-var BANNER_BASE64 = '';
-function bannerUrl(cb){
-  if(BANNER_BASE64){ cb(BANNER_BASE64); return; }
-  var c=document.createElement('canvas'); c.width=c.height=1080; var x=c.getContext('2d');
-  var g=x.createLinearGradient(0,0,1080,1080); g.addColorStop(0,'#2A6B45'); g.addColorStop(1,'#1d4d32');
-  x.fillStyle=g; x.fillRect(0,0,1080,1080);
-  x.fillStyle='#fff'; x.textAlign='center';
-  x.font='700 120px system-ui,sans-serif'; x.fillText('Meu consumo',540,420);
-  x.font='500 48px system-ui,sans-serif'; x.fillText('Organize seus gastos com combustível',540,520); x.fillText('mês a mês',540,585);
-  x.font='600 44px system-ui,sans-serif'; x.fillText('Procure na loja: Meu consumo',540,940);
-  cb(c.toDataURL('image/png'));
-}
-function dataParaBlob(u){ var p=u.split(','), m=p[0].match(/:(.*?);/)[1], b=atob(p[1]), n=b.length, a=new Uint8Array(n); while(n--) a[n]=b.charCodeAt(n); return new Blob([a],{type:m}); }
-$('btnBanner').onclick=function(){ bannerUrl(async function(u){
-  var f=new File([dataParaBlob(u)],'meu-consumo-banner.png',{type:'image/png'});
-  if(navigator.canShare&&navigator.canShare({files:[f]})){ try{ await navigator.share({files:[f],title:'Meu consumo'}); return; }catch(e){ if(e.name==='AbortError') return; } }
-  baixar(f); msg('Banner salvo');
-}); };
-
-/* ===== INÍCIO ===== */
-aplicarFundo(); renderTopo(); calcular();
-
-/* abre o IndexedDB e carrega perfil, carro e fundo antes de mostrar os dados */
-var abre = indexedDB.open('meu-consumo-db', 2);
-abre.onupgradeneeded = function(e){ var d = e.target.result; if(!d.objectStoreNames.contains('kv')) d.createObjectStore('kv'); if(!d.objectStoreNames.contains('consumos')) d.createObjectStore('consumos', { keyPath:'id', autoIncrement:true }); if(!d.objectStoreNames.contains('manutencao')) d.createObjectStore('manutencao', { keyPath:'id', autoIncrement:true }); };
-abre.onsuccess = function(e){
+dbRequest.onsuccess = (e) => {
   db = e.target.result;
-  var tx = db.transaction('kv'), cur = tx.objectStore('kv').openCursor();
-  cur.onsuccess = function(ev){ var c = ev.target.result; if(c){ cache[c.key] = c.value; c.continue(); } };
-  tx.oncomplete = function(){ perfil = ler(K_PERFIL) || perfil; carro = ler(K_CARRO) || carro; fundoUser = ler(K_FUNDO) || ''; aplicarFundo(); renderTopo(); calcular(); };
+  renderProfile();
+  render();
 };
-abre.onerror = function(){ msg('Não foi possível abrir o armazenamento do aparelho'); };
+
+dbRequest.onerror = (e) => {
+  console.error("Erro IndexedDB:", e.target.error);
+  document.getElementById("listCard").innerHTML =
+    `<div class="empty-state"><strong>Não foi possível abrir os dados</strong>
+    Isso costuma acontecer quando o arquivo é aberto direto (duplo clique) em vez de publicado
+    num site ou servidor local. Tente abrir via GitHub Pages, Firebase Hosting, ou um servidor local.</div>`;
+};
+
+function chaveSaldo(ano, mes) { return `${ano}-${mes}`; }
+
+function getAllGastos() {
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_GASTOS, "readonly");
+    const req = tx.objectStore(STORE_GASTOS).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => resolve([]);
+  });
+}
+
+function addGasto(item) {
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_GASTOS, "readwrite");
+    tx.objectStore(STORE_GASTOS).add(item);
+    tx.oncomplete = () => resolve();
+  });
+}
+
+function updateGasto(item) {
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_GASTOS, "readwrite");
+    tx.objectStore(STORE_GASTOS).put(item);
+    tx.oncomplete = () => resolve();
+  });
+}
+
+function deleteGasto(id) {
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_GASTOS, "readwrite");
+    tx.objectStore(STORE_GASTOS).delete(id);
+    tx.oncomplete = () => resolve();
+  });
+}
+
+function getSaldo(ano, mes) {
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_SALDOS, "readonly");
+    const req = tx.objectStore(STORE_SALDOS).get(chaveSaldo(ano, mes));
+    req.onsuccess = () => resolve(req.result ? req.result.valor : null);
+    req.onerror = () => resolve(null);
+  });
+}
+
+function setSaldo(ano, mes, valor) {
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_SALDOS, "readwrite");
+    tx.objectStore(STORE_SALDOS).put({ chave: chaveSaldo(ano, mes), valor });
+    tx.oncomplete = () => resolve();
+  });
+}
+
+function getPerfil() {
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_PERFIL, "readonly");
+    const req = tx.objectStore(STORE_PERFIL).get("perfil");
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => resolve(null);
+  });
+}
+
+function setPerfil(nome, id) {
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_PERFIL, "readwrite");
+    tx.objectStore(STORE_PERFIL).put({ chave: "perfil", nome, id });
+    tx.oncomplete = () => resolve();
+  });
+}
+
+function gerarIdPerfil() {
+  const d = new Date();
+  const aaaa = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let sufixo = "";
+  for (let i = 0; i < 4; i++) sufixo += chars[Math.floor(Math.random() * chars.length)];
+  return `${aaaa}${mm}${dd} ${sufixo}`;
+}
+
+// ---------- Estado ----------
+const hoje = new Date();
+let mesAtual = hoje.getMonth();
+let anoAtual = hoje.getFullYear();
+let editandoId = null;
+let excluindoId = null;
+let itemSelecionado = null;
+let abaAtual = "geral"; // "geral" ou "cartao"
+
+const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+function formatMoeda(v) {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function formatDataCurta(timestamp) {
+  const d = new Date(timestamp);
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
+function updateMonthLabel() {
+  document.getElementById("monthLabel").textContent = `${MESES[mesAtual]} ${anoAtual}`;
+}
+
+// ---------- Render ----------
+async function render() {
+  updateMonthLabel();
+
+  const todos = await getAllGastos();
+  const doMesTudo = todos.filter(g => g.mes === mesAtual && g.ano === anoAtual);
+
+  const doAba = doMesTudo
+    .filter(g => (g.tipo || "geral") === abaAtual)
+    .sort((a, b) => b.criadoEm - a.criadoEm);
+
+  const totalAba = doAba.reduce((soma, g) => soma + g.valor, 0);
+
+  if (abaAtual === "geral") {
+    const saldoInicial = await getSaldo(anoAtual, mesAtual);
+    renderBalanceAreaGeral(saldoInicial, totalAba);
+  } else {
+    renderBalanceAreaCartao(totalAba);
+  }
+
+  renderList(doAba);
+}
+
+function renderBalanceAreaGeral(saldoInicial, totalGasto) {
+  const area = document.getElementById("balanceArea");
+
+  if (saldoInicial === null) {
+    area.innerHTML = `
+      <div class="no-balance">
+        <p>Nenhum saldo inicial definido para este mês.</p>
+        <button id="btnDefinirSaldo">Definir saldo inicial</button>
+      </div>`;
+    document.getElementById("btnDefinirSaldo").addEventListener("click", () => openBalanceForm(null));
+    return;
+  }
+
+  const restante = saldoInicial - totalGasto;
+  const negativo = restante < 0;
+
+  area.innerHTML = `
+    <div class="balance-block">
+      <div class="balance-caption">saldo restante</div>
+      <div class="balance-value ${negativo ? "negativo" : ""}">${formatMoeda(restante)}</div>
+      <div class="sub-total">total gasto no mês: <b>${formatMoeda(totalGasto)}</b></div>
+    </div>`;
+}
+
+function renderBalanceAreaCartao(totalCartao) {
+  const area = document.getElementById("balanceArea");
+  area.innerHTML = `
+    <div class="balance-block">
+      <div class="balance-caption">total no cartão este mês</div>
+      <div class="balance-value">${formatMoeda(totalCartao)}</div>
+    </div>`;
+}
+
+function renderList(doMes) {
+  const card = document.getElementById("listCard");
+  card.innerHTML = "";
+
+  if (doMes.length === 0) {
+    const rotulo = abaAtual === "cartao" ? "gastos no cartão" : "gastos";
+    card.innerHTML = `
+      <div class="empty-state">
+        <strong>Nada registrado ainda</strong>
+        Toque em "Novo gasto" para começar a anotar os ${rotulo} de ${MESES[mesAtual].toLowerCase()}.
+      </div>`;
+    return;
+  }
+
+  doMes.forEach(g => {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `
+      <div class="row-main">
+        <div class="row-date">${formatDataCurta(g.criadoEm)}</div>
+        <div class="row-desc">${escapeHtml(g.descricao)}</div>
+      </div>
+      <div class="row-value">${formatMoeda(g.valor)}</div>
+    `;
+    row.addEventListener("click", () => openActionSheet(g));
+    card.appendChild(row);
+  });
+}
+
+function escapeHtml(str) {
+  const d = document.createElement("div");
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// ---------- Ações do gasto (editar/excluir) — bottom sheet ----------
+const actionOverlay = document.getElementById("actionOverlay");
+const actionTitle = document.getElementById("actionTitle");
+
+function openActionSheet(item) {
+  itemSelecionado = item;
+  actionTitle.textContent = item.descricao;
+  actionOverlay.classList.add("show");
+}
+
+document.getElementById("actionCancel").addEventListener("click", () => {
+  actionOverlay.classList.remove("show");
+});
+
+document.getElementById("actionEdit").addEventListener("click", () => {
+  actionOverlay.classList.remove("show");
+  openEditForm(itemSelecionado);
+});
+
+document.getElementById("actionDelete").addEventListener("click", () => {
+  actionOverlay.classList.remove("show");
+  openDeleteConfirm(itemSelecionado.id);
+});
+
+// ---------- Calendário (dias do mês) ----------
+const calendarOverlay = document.getElementById("calendarOverlay");
+const calYearLabel = document.getElementById("calYearLabel");
+const calDays = document.getElementById("calDays");
+let mesCalendario = mesAtual;
+let anoCalendario = anoAtual;
+
+function renderCalendarDays() {
+  calYearLabel.textContent = `${MESES[mesCalendario]} ${anoCalendario}`;
+  calDays.innerHTML = "";
+
+  const primeiroDiaSemana = new Date(anoCalendario, mesCalendario, 1).getDay();
+  const totalDias = new Date(anoCalendario, mesCalendario + 1, 0).getDate();
+  const diasMesAnterior = new Date(anoCalendario, mesCalendario, 0).getDate();
+
+  const hojeReal = new Date();
+  const ehMesAtualReal = anoCalendario === hojeReal.getFullYear() && mesCalendario === hojeReal.getMonth();
+
+  for (let i = primeiroDiaSemana - 1; i >= 0; i--) {
+    calDays.appendChild(criarCelulaDia(diasMesAnterior - i, true, false));
+  }
+  for (let dia = 1; dia <= totalDias; dia++) {
+    const ehHoje = ehMesAtualReal && dia === hojeReal.getDate();
+    calDays.appendChild(criarCelulaDia(dia, false, ehHoje));
+  }
+  const restante = (7 - (calDays.children.length % 7)) % 7;
+  for (let dia = 1; dia <= restante; dia++) {
+    calDays.appendChild(criarCelulaDia(dia, true, false));
+  }
+}
+
+function criarCelulaDia(numero, foraDoMes, ehHoje) {
+  const div = document.createElement("div");
+  div.className = "cal-day" + (foraDoMes ? " fora" : "") + (ehHoje ? " hoje" : "");
+  div.textContent = numero;
+  return div;
+}
+
+document.getElementById("calendarBtn").addEventListener("click", () => {
+  mesCalendario = mesAtual;
+  anoCalendario = anoAtual;
+  renderCalendarDays();
+  calendarOverlay.classList.add("show");
+});
+document.getElementById("calPrevMonth").addEventListener("click", () => {
+  mesCalendario--;
+  if (mesCalendario < 0) { mesCalendario = 11; anoCalendario--; }
+  renderCalendarDays();
+});
+document.getElementById("calNextMonth").addEventListener("click", () => {
+  mesCalendario++;
+  if (mesCalendario > 11) { mesCalendario = 0; anoCalendario++; }
+  renderCalendarDays();
+});
+calendarOverlay.addEventListener("click", (e) => {
+  if (e.target === calendarOverlay) calendarOverlay.classList.remove("show");
+});
+
+// ---------- Perfil (nome + ID) ----------
+async function renderProfile() {
+  const area = document.getElementById("profileArea");
+  const perfil = await getPerfil();
+
+  if (!perfil) {
+    area.innerHTML = `
+      <div class="profile-form">
+        <input type="text" id="inputNomePerfil" placeholder="Seu nome" maxlength="40">
+        <button id="btnSalvarPerfil">Salvar</button>
+      </div>`;
+    document.getElementById("btnSalvarPerfil").addEventListener("click", async () => {
+      const nome = document.getElementById("inputNomePerfil").value.trim();
+      if (!nome) { showToast("Digite um nome"); return; }
+      const id = gerarIdPerfil();
+      await setPerfil(nome, id);
+      renderProfile();
+    });
+    return;
+  }
+
+  area.innerHTML = `
+    <div class="profile-display" id="profileDisplay">
+      <b>${escapeHtml(perfil.nome)}</b> · ID ${escapeHtml(perfil.id)}
+    </div>`;
+  document.getElementById("profileDisplay").addEventListener("click", () => {
+    area.innerHTML = `
+      <div class="profile-form">
+        <input type="text" id="inputNomePerfil" value="${escapeHtml(perfil.nome)}" maxlength="40">
+        <button id="btnSalvarPerfil">Salvar</button>
+      </div>`;
+    document.getElementById("btnSalvarPerfil").addEventListener("click", async () => {
+      const nome = document.getElementById("inputNomePerfil").value.trim();
+      if (!nome) { showToast("Digite um nome"); return; }
+      await setPerfil(nome, perfil.id);
+      renderProfile();
+    });
+  });
+}
+
+// ---------- Configurações (backup + saldo + compartilhar) ----------
+const backupOverlay = document.getElementById("backupOverlay");
+
+document.getElementById("gearBtn").addEventListener("click", () => {
+  backupOverlay.classList.add("show");
+});
+document.getElementById("btnFecharBackup").addEventListener("click", () => {
+  backupOverlay.classList.remove("show");
+});
+
+const comoUsarOverlay = document.getElementById("comoUsarOverlay");
+document.getElementById("btnComoUsar").addEventListener("click", () => {
+  backupOverlay.classList.remove("show");
+  comoUsarOverlay.classList.add("show");
+});
+document.getElementById("fecharComoUsar").addEventListener("click", () => {
+  comoUsarOverlay.classList.remove("show");
+});
+
+document.getElementById("btnEditarSaldoConfig").addEventListener("click", async () => {
+  if (abaAtual !== "geral") {
+    showToast("Saldo inicial é só na aba Geral");
+    return;
+  }
+  const saldoAtual = await getSaldo(anoAtual, mesAtual);
+  backupOverlay.classList.remove("show");
+  openBalanceForm(saldoAtual);
+});
+
+document.getElementById("btnCompartilharImagem").addEventListener("click", async () => {
+  backupOverlay.classList.remove("show");
+  await compartilharComoImagem();
+});
+
+// ---------- Compartilhar registros como imagem PNG ----------
+// Paginação em formato A4 (proporção 210x297mm, renderizado em pixels)
+const A4_LARGURA = 794;
+const A4_ALTURA = 1123;
+const A4_MARGEM = 40;
+const A4_LINHA_ALTURA = 34;
+// Altura reservada ao cabeçalho da página A4 (inclui a linha de etiquetas das colunas)
+const A4_ALTURA_CABECALHO = 154;
+const A4_ALTURA_RODAPE_TOTAL = 70;
+
+async function compartilharComoImagem() {
+  const todos = await getAllGastos();
+  const doAba = todos
+    .filter(g => g.mes === mesAtual && g.ano === anoAtual && (g.tipo || "geral") === abaAtual)
+    .sort((a, b) => a.criadoEm - b.criadoEm);
+
+  const perfil = await getPerfil();
+  const total = doAba.reduce((s, g) => s + g.valor, 0);
+  const nomeAba = abaAtual === "cartao" ? "Cartão" : "Geral";
+
+  // quantas linhas cabem numa página A4 (a última página reserva espaço pro total)
+  const alturaUtil = A4_ALTURA - A4_ALTURA_CABECALHO - A4_MARGEM;
+  const linhasPorPagina = Math.floor((alturaUtil - A4_ALTURA_RODAPE_TOTAL) / A4_LINHA_ALTURA);
+  const linhasPorPaginaIntermediaria = Math.floor(alturaUtil / A4_LINHA_ALTURA);
+
+  // monta as páginas: só a última página leva o total, então ela cabe menos linhas
+  const paginas = [];
+  if (doAba.length <= linhasPorPagina) {
+    paginas.push(doAba);
+  } else {
+    let restante = [...doAba];
+    while (restante.length > linhasPorPaginaIntermediaria + linhasPorPagina) {
+      paginas.push(restante.splice(0, linhasPorPaginaIntermediaria));
+    }
+    // o que sobrou pode não caber inteiro com o total na mesma página
+    if (restante.length > linhasPorPagina) {
+      paginas.push(restante.splice(0, linhasPorPaginaIntermediaria));
+    }
+    paginas.push(restante);
+  }
+
+  const arquivos = [];
+  for (let i = 0; i < paginas.length; i++) {
+    const ehUltima = i === paginas.length - 1;
+    const blob = await desenharPaginaA4(paginas[i], {
+      nomeAba, perfil, pagina: i + 1, totalPaginas: paginas.length,
+      mostrarTotal: ehUltima, total
+    });
+    const sufixo = paginas.length > 1 ? `-pagina-${i + 1}` : "";
+    const nomeArquivo = `controle-de-gastos-${nomeAba.toLowerCase()}-${MESES[mesAtual].toLowerCase()}-${anoAtual}${sufixo}.png`;
+    arquivos.push(new File([blob], nomeArquivo, { type: "image/png" }));
+  }
+
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: arquivos })) {
+    try {
+      await navigator.share({ files: arquivos, title: "Controle de Gastos" });
+      return;
+    } catch (err) {
+      // usuário cancelou o compartilhamento, ou falhou — cai no download abaixo
+    }
+  }
+
+  arquivos.forEach(arquivo => {
+    const url = URL.createObjectURL(arquivo);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = arquivo.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+  showToast(arquivos.length > 1 ? "Imagens salvas" : "Imagem salva");
+}
+
+function desenharPaginaA4(itens, { nomeAba, perfil, pagina, totalPaginas, mostrarTotal, total }) {
+  return new Promise(async (resolve) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = A4_LARGURA;
+    canvas.height = A4_ALTURA;
+    const ctx = canvas.getContext("2d");
+
+    // fundo
+    ctx.fillStyle = "#F6F1E4";
+    ctx.fillRect(0, 0, A4_LARGURA, A4_ALTURA);
+
+    // cabeçalho
+    ctx.fillStyle = "#2F4A3E";
+    ctx.font = "600 28px Georgia, serif";
+    ctx.fillText("Controle de Gastos", A4_MARGEM, 56);
+
+    ctx.fillStyle = "#6B7A87";
+    ctx.font = "14px -apple-system, sans-serif";
+    // Linha do nome e ID, seguida da data e hora em que esta imagem foi gerada.
+    // Se ainda não houver perfil cadastrado, mostra apenas a data e hora.
+    const agora = new Date();
+    const dataHoraGeracao = agora.toLocaleDateString("pt-BR") + " " +
+      agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const linhaIdentificacao = perfil
+      ? `${perfil.nome} · ID ${perfil.id} · ${dataHoraGeracao}`
+      : dataHoraGeracao;
+    ctx.fillText(linhaIdentificacao, A4_MARGEM, 80);
+
+    ctx.fillStyle = "#2F4A3E";
+    ctx.font = "600 18px -apple-system, sans-serif";
+    let tituloLinha = `${nomeAba} — ${MESES[mesAtual]} ${anoAtual}`;
+    if (totalPaginas > 1) tituloLinha += ` (página ${pagina} de ${totalPaginas})`;
+    ctx.fillText(tituloLinha, A4_MARGEM, 118);
+
+    // (a linha divisória que ficava aqui foi removida: as etiquetas das colunas
+    //  agora vêm logo abaixo do título, e a linha fina fica embaixo das etiquetas)
+    ctx.lineWidth = 1;
+
+    // logo (se houver base64 definido) ou símbolo padrão — só na primeira página
+    if (pagina === 1) {
+      await desenharLogo(ctx, A4_LARGURA - A4_MARGEM - 56, 28, 56);
+    }
+
+    // Etiquetas das colunas (primeira linha da lista): Data | Local | Valor
+    // As posições seguem as mesmas colunas usadas nas linhas dos gastos mais abaixo.
+    ctx.fillStyle = "#6B7A87";
+    // Etiquetas em NEGRITO (peso 700)
+    ctx.font = "700 13px -apple-system, sans-serif";
+    ctx.fillText("Data", A4_MARGEM, A4_ALTURA_CABECALHO - 8);
+    ctx.fillText("Local", A4_MARGEM + 70, A4_ALTURA_CABECALHO - 8);
+    ctx.textAlign = "right";
+    ctx.fillText("Valor", A4_LARGURA - A4_MARGEM, A4_ALTURA_CABECALHO - 8);
+    ctx.textAlign = "left";
+    // Linha fina separando as etiquetas dos gastos
+    ctx.strokeStyle = "#E1D8C2";
+    ctx.beginPath();
+    ctx.moveTo(A4_MARGEM, A4_ALTURA_CABECALHO);
+    ctx.lineTo(A4_LARGURA - A4_MARGEM, A4_ALTURA_CABECALHO);
+    ctx.stroke();
+
+    // lista
+    let y = A4_ALTURA_CABECALHO + 6;
+    if (itens.length === 0) {
+      ctx.fillStyle = "#6B7A87";
+      ctx.font = "15px -apple-system, sans-serif";
+      ctx.fillText("Nenhum gasto registrado neste mês.", A4_MARGEM, y + 20);
+      y += A4_LINHA_ALTURA;
+    } else {
+      itens.forEach(g => {
+        ctx.fillStyle = "#6B7A87";
+        ctx.font = "12px -apple-system, sans-serif";
+        ctx.fillText(formatDataCurta(g.criadoEm), A4_MARGEM, y + 16);
+
+        ctx.fillStyle = "#2F4A3E";
+        ctx.font = "14px -apple-system, sans-serif";
+        ctx.fillText(g.descricao, A4_MARGEM + 70, y + 18);
+
+        ctx.font = "600 14px -apple-system, sans-serif";
+        ctx.textAlign = "right";
+        ctx.fillText(formatMoeda(g.valor), A4_LARGURA - A4_MARGEM, y + 18);
+        ctx.textAlign = "left";
+
+        ctx.strokeStyle = "#E1D8C2";
+        ctx.beginPath();
+        ctx.moveTo(A4_MARGEM, y + A4_LINHA_ALTURA - 8);
+        ctx.lineTo(A4_LARGURA - A4_MARGEM, y + A4_LINHA_ALTURA - 8);
+        ctx.stroke();
+
+        y += A4_LINHA_ALTURA;
+      });
+    }
+
+    // total — só na última página
+    if (mostrarTotal) {
+      ctx.strokeStyle = "#2F4A3E";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(A4_MARGEM, y + 14);
+      ctx.lineTo(A4_LARGURA - A4_MARGEM, y + 14);
+      ctx.stroke();
+
+      ctx.fillStyle = "#2F4A3E";
+      ctx.font = "600 16px -apple-system, sans-serif";
+      ctx.fillText("Total", A4_MARGEM, y + 44);
+      ctx.textAlign = "right";
+      ctx.font = "600 20px -apple-system, sans-serif";
+      ctx.fillStyle = "#9A3E33";
+      ctx.fillText(formatMoeda(total), A4_LARGURA - A4_MARGEM, y + 46);
+      ctx.textAlign = "left";
+    }
+
+    canvas.toBlob((blob) => resolve(blob), "image/png");
+  });
+}
+
+function desenharLogo(ctx, x, y, tamanho) {
+  return new Promise((resolve) => {
+    if (LOGO_BASE64) {
+      const img = new Image();
+      img.onload = () => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x + tamanho / 2, y + tamanho / 2, tamanho / 2, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(img, x, y, tamanho, tamanho);
+        ctx.restore();
+        resolve();
+      };
+      img.onerror = () => { desenharSimboloPadrao(ctx, x, y, tamanho); resolve(); };
+      img.src = LOGO_BASE64;
+    } else {
+      desenharSimboloPadrao(ctx, x, y, tamanho);
+      resolve();
+    }
+  });
+}
+
+function desenharSimboloPadrao(ctx, x, y, tamanho) {
+  ctx.save();
+  ctx.fillStyle = "#2F4A3E";
+  ctx.beginPath();
+  ctx.arc(x + tamanho / 2, y + tamanho / 2, tamanho / 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#F6F1E4";
+  ctx.font = `600 ${Math.floor(tamanho * 0.45)}px Georgia, serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("CG", x + tamanho / 2, y + tamanho / 2 + 1);
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.restore();
+}
+
+document.getElementById("btnExportar").addEventListener("click", async () => {
+  const gastos = await getAllGastos();
+  const tx = db.transaction(STORE_SALDOS, "readonly");
+  const saldos = await new Promise((resolve) => {
+    const req = tx.objectStore(STORE_SALDOS).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => resolve([]);
+  });
+  const perfil = await getPerfil();
+
+  const dados = { gastos, saldos, perfil, versao: 1 };
+  const blob = new Blob([JSON.stringify(dados, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const hoje = new Date();
+  const dd = String(hoje.getDate()).padStart(2, "0");
+  const mm = String(hoje.getMonth() + 1).padStart(2, "0");
+  const aaaa = hoje.getFullYear();
+  const nomeArquivo = `${dd}-${mm}-${aaaa}-livro-de-gastos-backup.json`;
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nomeArquivo;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast("Backup exportado");
+  backupOverlay.classList.remove("show");
+});
+
+document.getElementById("btnImportar").addEventListener("click", () => {
+  document.getElementById("fileImportar").click();
+});
+
+document.getElementById("fileImportar").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  try {
+    const texto = await file.text();
+    const dados = JSON.parse(texto);
+
+    const txGastos = db.transaction(STORE_GASTOS, "readwrite");
+    txGastos.objectStore(STORE_GASTOS).clear();
+    await new Promise(r => txGastos.oncomplete = r);
+
+    const txG2 = db.transaction(STORE_GASTOS, "readwrite");
+    (dados.gastos || []).forEach(g => {
+      const copia = { ...g };
+      delete copia.id;
+      txG2.objectStore(STORE_GASTOS).add(copia);
+    });
+    await new Promise(r => txG2.oncomplete = r);
+
+    const txSaldos = db.transaction(STORE_SALDOS, "readwrite");
+    txSaldos.objectStore(STORE_SALDOS).clear();
+    await new Promise(r => txSaldos.oncomplete = r);
+
+    const txS2 = db.transaction(STORE_SALDOS, "readwrite");
+    (dados.saldos || []).forEach(s => txS2.objectStore(STORE_SALDOS).put(s));
+    await new Promise(r => txS2.oncomplete = r);
+
+    if (dados.perfil) {
+      await setPerfil(dados.perfil.nome, dados.perfil.id);
+    }
+
+    showToast("Backup importado");
+    backupOverlay.classList.remove("show");
+    renderProfile();
+    render();
+  } catch (err) {
+    console.error(err);
+    showToast("Arquivo inválido");
+  }
+
+  e.target.value = "";
+});
+
+// ---------- Abas Geral / Cartão ----------
+document.getElementById("tabGeral").addEventListener("click", () => {
+  if (abaAtual === "geral") return;
+  abaAtual = "geral";
+  document.getElementById("tabGeral").classList.add("active");
+  document.getElementById("tabCartao").classList.remove("active");
+  render();
+});
+document.getElementById("tabCartao").addEventListener("click", () => {
+  if (abaAtual === "cartao") return;
+  abaAtual = "cartao";
+  document.getElementById("tabCartao").classList.add("active");
+  document.getElementById("tabGeral").classList.remove("active");
+  render();
+});
+
+// ---------- Navegação de mês ----------
+document.getElementById("prevMonth").addEventListener("click", () => {
+  mesAtual--;
+  if (mesAtual < 0) { mesAtual = 11; anoAtual--; }
+  render();
+});
+document.getElementById("nextMonth").addEventListener("click", () => {
+  mesAtual++;
+  if (mesAtual > 11) { mesAtual = 0; anoAtual++; }
+  render();
+});
+
+// ---------- Formulário: gasto ----------
+const formOverlay = document.getElementById("formOverlay");
+const inputDesc = document.getElementById("inputDesc");
+const inputValor = document.getElementById("inputValor");
+const formTitle = document.getElementById("formTitle");
+
+document.getElementById("openAdd").addEventListener("click", () => {
+  editandoId = null;
+  formTitle.textContent = abaAtual === "cartao" ? "Novo gasto no cartão" : "Novo gasto";
+  inputDesc.value = "";
+  inputValor.value = "";
+  formOverlay.classList.add("show");
+  setTimeout(() => inputDesc.focus(), 100);
+});
+
+function openEditForm(item) {
+  editandoId = item.id;
+  formTitle.textContent = "Editar gasto";
+  inputDesc.value = item.descricao;
+  inputValor.value = item.valor;
+  formOverlay.classList.add("show");
+  setTimeout(() => inputDesc.focus(), 100);
+}
+
+document.getElementById("cancelForm").addEventListener("click", () => {
+  formOverlay.classList.remove("show");
+});
+
+document.getElementById("saveForm").addEventListener("click", async () => {
+  const descricao = inputDesc.value.trim();
+  const valor = parseFloat(inputValor.value);
+
+  if (!descricao) { showToast("Digite o local da despesa"); return; }
+  if (isNaN(valor) || valor <= 0) { showToast("Digite um valor válido"); return; }
+
+  if (editandoId) {
+    const todos = await getAllGastos();
+    const original = todos.find(g => g.id === editandoId);
+    await updateGasto({
+      id: editandoId, descricao, valor,
+      mes: original.mes, ano: original.ano, criadoEm: original.criadoEm,
+      tipo: original.tipo || "geral"
+    });
+    showToast("Gasto atualizado");
+  } else {
+    await addGasto({
+      descricao, valor, mes: mesAtual, ano: anoAtual, criadoEm: Date.now(), tipo: abaAtual
+    });
+    showToast("Gasto adicionado");
+  }
+
+  formOverlay.classList.remove("show");
+  render();
+});
+
+// ---------- Formulário: saldo inicial ----------
+const balanceOverlay = document.getElementById("balanceOverlay");
+const inputSaldo = document.getElementById("inputSaldo");
+
+function openBalanceForm(valorAtual) {
+  inputSaldo.value = valorAtual !== null ? valorAtual : "";
+  balanceOverlay.classList.add("show");
+  setTimeout(() => inputSaldo.focus(), 100);
+}
+
+document.getElementById("cancelBalance").addEventListener("click", () => {
+  balanceOverlay.classList.remove("show");
+});
+
+document.getElementById("saveBalance").addEventListener("click", async () => {
+  const valor = parseFloat(inputSaldo.value);
+  if (isNaN(valor) || valor < 0) { showToast("Digite um valor válido"); return; }
+
+  await setSaldo(anoAtual, mesAtual, valor);
+  balanceOverlay.classList.remove("show");
+  showToast("Saldo inicial definido");
+  render();
+});
+
+// ---------- Confirmação de exclusão ----------
+const confirmOverlay = document.getElementById("confirmOverlay");
+
+function openDeleteConfirm(id) {
+  excluindoId = id;
+  confirmOverlay.classList.add("show");
+}
+
+document.getElementById("cancelDelete").addEventListener("click", () => {
+  confirmOverlay.classList.remove("show");
+  excluindoId = null;
+});
+
+document.getElementById("confirmDelete").addEventListener("click", async () => {
+  if (excluindoId != null) {
+    await deleteGasto(excluindoId);
+    showToast("Gasto excluído");
+  }
+  confirmOverlay.classList.remove("show");
+  excluindoId = null;
+  render();
+});
+
+// ---------- Toast ----------
+let toastTimer;
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("show"), 2200);
+}
 </script>
+
 </body>
 </html>
